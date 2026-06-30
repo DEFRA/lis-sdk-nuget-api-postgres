@@ -1,0 +1,24 @@
+<Project>
+    <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))"
+            Condition="Exists($([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../')))" />
+    <PropertyGroup>
+        <RootNamespace>Defra.Database.Postgres</RootNamespace>
+    </PropertyGroup>
+    <ItemGroup>
+        <PackageReference Include="AWSSDK.RDS" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Analyzers" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Design" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" />
+        <PackageReference Include="Npgsql" />
+        <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <Using Include="Microsoft.EntityFrameworkCore" />
+        <Using Include="Microsoft.EntityFrameworkCore.Metadata.Builders" />
+    </ItemGroup>
+
+
+</Project>

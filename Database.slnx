@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Database/Database.csproj" />
+    <Project Path="src/Entities/Entities.csproj" />
+    <Project Path="src/Postgres/Postgres.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Database.Tests/Database.Tests.csproj" />
+  </Folder>
+</Solution>
