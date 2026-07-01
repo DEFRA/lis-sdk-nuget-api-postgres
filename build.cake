@@ -1,5 +1,7 @@
 #addin nuget:?package=Cake.Coverlet&version=5.1.1
+#addin nuget:?package=Cake.MinVer&version=3.0.0
 #tool dotnet:?package=GitVersion.Tool&version=6.5.1
+#tool dotnet:?package=minver-cli&version=6.0.0
 #tool dotnet:?package=dotnet-reportgenerator-globaltool&version=5.5.1
 
 var target = Argument("target", "Default");
@@ -30,11 +32,12 @@ Task("Clean")
 
 Task("Version")
     .Does(() => {
- /*   var result = GitVersion(new GitVersionSettings {
-        UpdateAssemblyInfo = true
-    }); */
+    var result = MinVer(new MinVerSettings {
+        TagPrefix = "v",
+        DefaultPreReleasePhase = "preview"
+    });
     
-    version = "1.02.0";
+    version = result.Version;
     Information($"Version: { version }");
 });
 Task("Restore")
@@ -58,9 +61,11 @@ Task("Restore")
 
 Task("Build")
     .IsDependentOn("Restore")
+    .IsDependentOn("Version")
     .Does(() => {
      var buildSettings = new DotNetBuildSettings {
                         Configuration = configuration,
+                        ArgumentCustomization = args => args.Append($"/p:Version={version}")
                        };
      GetFiles("./**/**/*.csproj").ToList().ForEach(project => {
          Information($"Building {project.ToString()}");
@@ -158,6 +163,7 @@ Task("Sonar-Install")
 
 Task("Sonar-Begin")
     .IsDependentOn("Sonar-Install")
+    .IsDependentOn("Version")
     .Description("Starts SonarCloud analysis")
     .Does(() => {
         if (string.IsNullOrWhiteSpace(sonarToken))
@@ -172,7 +178,7 @@ Task("Sonar-Begin")
                 "/o:\"defra\"",
                 $"/d:sonar.token=\"{sonarToken}\"",
                 "/d:sonar.host.url=\"https://sonarcloud.io\"",
-                $"/v:\"{sonarVersion}\"",
+                $"/v:\"{version}\"",
                 "/d:sonar.cs.vscoveragexml.reportsPaths=coverage.xml",
                 "/d:sonar.exclusions=\"changelog/**,.github/**\"",
                 "/d:sonar.dotnet.excludeTestProjects=true"
@@ -186,7 +192,8 @@ Task("Sonar-Build")
     .Does(() => {
         DotNetBuild(SolutionFileName, new DotNetBuildSettings {
             Configuration = configuration,
-            NoIncremental = true
+            NoIncremental = true,
+            ArgumentCustomization = args => args.Append($"/p:Version={version}")
         });
     });
 
