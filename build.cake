@@ -25,7 +25,9 @@ Task("Clean")
 });
 
 Task("Version")
-    .Does(() => {
+     .IsDependentOn("Clean")
+     .Description("Generate the version number for the assembly")
+     .Does(() => {
     
     var result = MinVer(new MinVerSettings {
         TagPrefix = "v",
@@ -59,7 +61,7 @@ Task("Version")
     Information($"Version: { version }");
 });
 Task("Restore")
-    .IsDependentOn("Clean")
+    .IsDependentOn("Version")
     .Description("Restoring the solution dependencies")
     .Does(() => {
     
@@ -168,8 +170,8 @@ Task("Publish")
     
 Task("Default")
        .IsDependentOn("Clean")
-       .IsDependentOn("Restore")
        .IsDependentOn("Version")
+       .IsDependentOn("Restore")
        .IsDependentOn("Build")
        .IsDependentOn("Test")
        .IsDependentOn("Pack")
