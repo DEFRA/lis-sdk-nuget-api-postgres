@@ -21,6 +21,28 @@ Task("Version")
     });
     
     version = result.Version;
+
+    var isGitHubActions = BuildSystem.GitHubActions.IsRunningOnGitHubActions;
+    var isPullRequest = BuildSystem.GitHubActions.Environment.PullRequest.IsPullRequest;
+    var branchName = BuildSystem.GitHubActions.Environment.Workflow.RefName;
+    var isMain = !string.IsNullOrWhiteSpace(branchName) && branchName.Equals("main", StringComparison.OrdinalIgnoreCase);
+
+    if (isPullRequest || !isGitHubActions || !isMain)
+    {
+        var baseVersion = version.Split('-')[0];
+        var height = "0";
+        if (version.Contains("-"))
+        {
+            var preReleasePart = version.Split('-')[1];
+            height = preReleasePart.Split('.').Last();
+        }
+        version = $"{baseVersion}-LREG-XX-alpha.{height}";
+    }
+    else
+    {
+        version = version.Split('-')[0];
+    }
+    
     Information($"Version: { version }");
 });
 
