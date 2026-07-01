@@ -7,7 +7,7 @@
 var target = Argument("target", "Default");
 var configuration = Argument("configuration", "Release");
 
-const string TEST_COVERAGE_OUTPUT_DIR = "coverage";
+const string TEST_COVERAGE_OUTPUT_DIR = ".coverage";
 const string SolutionFileName = "Database.slnx";
 string version = String.Empty;
 var github_token = Argument<string>("github_token", "");
@@ -123,7 +123,7 @@ Task("Test")
               var glob = new GlobPattern($"./{ coverageOutput}/*.cobertura.xml");
                  
               Information($"globpattern : { glob.ToString()}");
-              var outputDirectory = Directory("./.coverage/reports");
+              var outputDirectory = Directory($"./{TEST_COVERAGE_OUTPUT_DIR}/reports");
              
              Information($"output Directory : { outputDirectory}");
               var reportSettings = new ReportGeneratorSettings
