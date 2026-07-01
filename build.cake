@@ -97,7 +97,7 @@ Task("Test")
               var glob = new GlobPattern($"./{ coverageOutput}/*.cobertura.xml");
                  
               Information($"globpattern : { glob.ToString()}");
-              var outputDirectory = Directory("./coverage/reports");
+              var outputDirectory = Directory("./.coverage/reports");
              
              Information($"output Directory : { outputDirectory}");
               var reportSettings = new ReportGeneratorSettings
