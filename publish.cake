@@ -6,7 +6,8 @@ var github_token = Argument<string>("github_token", "");
 
 const string SolutionFileName = "Database.slnx";
 string version = String.Empty;
-
+const string PACK_OUTPUT_DIR = ".artifacts";
+const string PUBLISH_URL = "https://nuget.pkg.github.com/defra/index.json"
 Task("Clean")
     .Does(() => {
     if (BuildSystem.GitHubActions.IsRunningOnGitHubActions)
@@ -33,7 +34,7 @@ Task("Pack")
     var settings = new DotNetPackSettings
     {
         Configuration = configuration,
-        OutputDirectory = ".artifacts",
+        OutputDirectory = PACK_OUTPUT_DIR,
         MSBuildSettings = new DotNetMSBuildSettings()
                         .WithProperty("PackageVersion", version)
                         .WithProperty("Copyright", $"© Copyright {DateTime.Now.Year}")
@@ -48,12 +49,12 @@ Task("Publish")
     .Does(() => {
     if (BuildSystem.GitHubActions.IsRunningOnGitHubActions)
     {
-        foreach(var file in GetFiles("./.artifacts/*.nupkg"))
+        foreach(var file in GetFiles($"./{PACK_OUTPUT_DIR}/*.nupkg"))
         {
             Information("Publishing {0}...", file.GetFilename().FullPath);
             DotNetNuGetPush(file, new DotNetNuGetPushSettings {
                 ApiKey = github_token,
-                Source = "https://nuget.pkg.github.com/defra/index.json"
+                Source = PUBLISH_URL
             });
         } 
     } 
