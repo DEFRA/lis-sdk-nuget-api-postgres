@@ -1,5 +1,4 @@
-#addin nuget:?package=Cake.MinVer&version=3.0.0
-#tool dotnet:?package=minver-cli&version=6.0.0
+#load "version.cake"
 
 var productName = Argument<string>("product_name", "DEFRA_identity-service-helper");
 var sonarToken = EnvironmentVariable("SONAR_TOKEN");
@@ -15,34 +14,7 @@ string version = String.Empty;
 
 Task("Version")
     .Does(() => {
-    var result = MinVer(new MinVerSettings {
-        TagPrefix = "v",
-        DefaultPreReleasePhase = "preview"
-    });
-    
-    version = result.Version;
-
-    var isGitHubActions = BuildSystem.GitHubActions.IsRunningOnGitHubActions;
-    var isPullRequest = BuildSystem.GitHubActions.Environment.PullRequest.IsPullRequest;
-    var branchName = BuildSystem.GitHubActions.Environment.Workflow.RefName;
-    var isMain = !string.IsNullOrWhiteSpace(branchName) && branchName.Equals("main", StringComparison.OrdinalIgnoreCase);
-
-    if (isPullRequest || !isGitHubActions || !isMain)
-    {
-        var baseVersion = version.Split('-')[0];
-        var height = "0";
-        if (version.Contains("-"))
-        {
-            var preReleasePart = version.Split('-')[1];
-            height = preReleasePart.Split('.').Last();
-        }
-        version = $"{baseVersion}-LREG-XX-alpha.{height}";
-    }
-    else
-    {
-        version = version.Split('-')[0];
-    }
-    
+    version = CalculateVersion();
     Information($"Version: { version }");
 });
 
