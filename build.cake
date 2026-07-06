@@ -8,7 +8,7 @@ var configuration = Argument("configuration", "Release");
 
 const string TEST_COVERAGE_OUTPUT_DIR = ".coverage";
 const string SolutionFileName = "Database.slnx";
-string version = String.Empty;
+var version = Argument<string>("version", "");
 var github_token = Argument<string>("github_token", "");
 Task("Clean")
     .Does(() => {
@@ -27,8 +27,19 @@ Task("Version")
      .IsDependentOn("Clean")
      .Description("Generate the version number for the assembly")
      .Does(() => {
-    version = CalculateVersion();
-    Information($"Version: { version }");
+      if (BuildSystem.GitHubActions.IsRunningOnGitHubActions)
+         {
+           Information($"Version {version}");
+         }
+         else
+         {
+             if(string.IsNullOrEmpty(version))
+             {
+                version = CalculateVersion();
+             }
+             
+            Information($"Version {version}");
+         }
 });
 Task("Restore")
     .IsDependentOn("Version")
