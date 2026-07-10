@@ -48,8 +48,8 @@ jobs:
         uses: cake-build/cake-action@v3
         env:
           ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
-          PRODUCT_NAME: Defra.Core
-          SOLUTION_FILE_NAME: Core.slnx
+          PRODUCT_NAME: Defra.Database
+          SOLUTION_FILE_NAME: Database.slnx
           PACKAGE_VERSION: ${{ needs.get-version.outputs.version }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         with:
