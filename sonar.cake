@@ -1,26 +1,38 @@
+
+#load "base.cake"
 #load "version.cake"
 
-var productName = Argument<string>("product_name", "DEFRA_identity-service-helper");
-var sonarToken = EnvironmentVariable("SONAR_TOKEN");
-var sonarVersion = EnvironmentVariable("SONAR_VERSION");
-var SonarScannerPath = Argument("sonarscannerpath", "./.sonar/scanner/dotnet-sonarscanner");
-var DotNetCoveragePath = Argument("dotnetcoveragepath", "./.sonar/coverage/dotnet-coverage");
-const string SonarCoverageFile = "coverage.xml";
 var target = Argument("target", "Sonar");
 var configuration = Argument("configuration", "Release");
 
-const string SolutionFileName = "Database.slnx";
-string version = String.Empty;
+var productName = Argument<string>("product_name", "");
+var solution_file_name = Argument<string>("solution_file_name", "");
+var version = Argument<string>("package_version", "");
+var sonarToken = Argument<string>("sonar_token", "");
+const string SonarHostUrl = "https://sonarcloud.io";
+const string SonarOrganization = "defra";
+const string SonarCoverageFile = "coverage.xml";
+
+var SonarScannerPath = "./.sonar/scanner/dotnet-sonarscanner";
+var DotNetCoveragePath = "./.sonar/coverage/dotnet-coverage";
 
 Task("Version")
     .Does(() => {
-    version = CalculateVersion();
-    Information($"Version: { version }");
-});
+        if (string.IsNullOrEmpty(version))
+        {
+            version = CalculateVersion();
+        }
+        Information($"Version: {version}");
+    });
 
 Task("Sonar-Install")
     .Description("Installs the SonarCloud scanner and dotnet-coverage tools")
     .Does(() => {
+    
+         if (string.IsNullOrWhiteSpace(sonarToken))
+         {
+           throw new Exception("Sonar Cloud token is required to run SonarCloud analysis.");
+         }
         EnsureDirectoryExists("./.sonar/scanner");
         EnsureDirectoryExists("./.sonar/coverage");
 
@@ -38,18 +50,13 @@ Task("Sonar-Begin")
     .IsDependentOn("Version")
     .Description("Starts SonarCloud analysis")
     .Does(() => {
-        if (string.IsNullOrWhiteSpace(sonarToken))
-        {
-            throw new Exception("SONAR_TOKEN environment variable is required to run SonarCloud analysis.");
-        }
-
-        StartProcess(SonarScannerPath, new ProcessSettings {
+          StartProcess(SonarScannerPath, new ProcessSettings {
             Arguments = string.Join(" ", new [] {
                 "begin",
                 $"/k:\"{productName}\"",
                 "/o:\"defra\"",
                 $"/d:sonar.token=\"{sonarToken}\"",
-                "/d:sonar.host.url=\"https://sonarcloud.io\"",
+                $"/d:sonar.host.url=\"{SonarHostUrl}\"",
                 $"/v:\"{version}\"",
                 "/d:sonar.cs.vscoveragexml.reportsPaths=coverage.xml",
                 "/d:sonar.exclusions=\"changelog/**,.github/**\"",
@@ -62,7 +69,7 @@ Task("Sonar-Build")
     .IsDependentOn("Sonar-Begin")
     .Description("Builds the solution for SonarCloud analysis")
     .Does(() => {
-        DotNetBuild(SolutionFileName, new DotNetBuildSettings {
+        DotNetBuild(solution_file_name, new DotNetBuildSettings {
             Configuration = configuration,
             NoIncremental = true,
             ArgumentCustomization = args => args.Append($"/p:Version={version}")
@@ -82,11 +89,7 @@ Task("Sonar-End")
     .IsDependentOn("Sonar-Test")
     .Description("Completes SonarCloud analysis")
     .Does(() => {
-        if (string.IsNullOrWhiteSpace(sonarToken))
-        {
-            throw new Exception("SONAR_TOKEN environment variable is required to run SonarCloud analysis.");
-        }
-
+       
         StartProcess(SonarScannerPath, new ProcessSettings {
             Arguments = $"end /d:sonar.token=\"{sonarToken}\""
         });
@@ -95,5 +98,8 @@ Task("Sonar-End")
 Task("Sonar")
     .IsDependentOn("Sonar-End")
     .Description("Runs the full SonarCloud analysis pipeline");
+
+Task("Default")
+    .IsDependentOn("Sonar");
 
 RunTarget(target);

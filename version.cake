@@ -1,14 +1,17 @@
-#addin nuget:?package=Cake.MinVer&version=3.0.0
-#tool dotnet:?package=minver-cli&version=6.0.0
+#nullable enable
+#tool dotnet:?package=GitVersion.Tool&version=6.5.1
 
 public string CalculateVersion()
 {
-    var result = MinVer(new MinVerSettings {
-        TagPrefix = "v",
-        DefaultPreReleasePhase = "preview",
-    });
+    var settings = new GitVersionSettings
+    {
+        NoFetch = true
+    };
+
+    var gitVersion = GitVersion(settings);
     
-    var calculatedVersion = result.Version;
+    var calculatedVersion = gitVersion.FullSemVer;
+    var baseVersion = $"{gitVersion.Major}.{gitVersion.Minor}.{gitVersion.Patch}";
 
     var isGitHubActions = BuildSystem.GitHubActions.IsRunningOnGitHubActions;
     var isPullRequest = isGitHubActions && BuildSystem.GitHubActions.Environment.PullRequest.IsPullRequest;
@@ -34,6 +37,7 @@ public string CalculateVersion()
                 {
                     branchName = outLines.FirstOrDefault();
                 }
+               
             } 
             catch 
             {
@@ -61,19 +65,38 @@ public string CalculateVersion()
             }
         }
 
-        var baseVersion = calculatedVersion.Split('-')[0];
-        var height = "0";
-        if (calculatedVersion.Contains("-"))
-        {
-            var preReleasePart = calculatedVersion.Split('-')[1];
-            height = preReleasePart.Split('.').Last();
-        }
+        var height = gitVersion.CommitsSinceVersionSource ?? 0;
         calculatedVersion = $"{baseVersion}-{lreg}-alpha.{height}";
     }
     else
     {
-        calculatedVersion = calculatedVersion.Split('-')[0];
+        calculatedVersion = baseVersion;
     }
-
     return calculatedVersion;
+}
+
+Task("GetVersion")
+    .Description("Calculates the version and sets it as a GitHub Actions output")
+    .Does(() => {
+        var version = CalculateVersion();
+        Information($"Calculated Version: {version}");
+        
+        if (BuildSystem.GitHubActions.IsRunningOnGitHubActions)
+        {
+            var outputFile = EnvironmentVariable("GITHUB_OUTPUT");
+            if (!string.IsNullOrEmpty(outputFile))
+            {
+                System.IO.File.AppendAllLines(outputFile, new[] { $"version={version}" });
+            }
+            else
+            {
+                Warning("GITHUB_OUTPUT environment variable not found.");
+            }
+        }
+    });
+
+var targetVersion = Argument("target", "");
+if (targetVersion == "GetVersion")
+{
+    RunTarget("GetVersion");
 }

@@ -1,0 +1,103 @@
+name: "Build"
+
+on:
+  push:
+    branches:
+      - feature/LREG-*
+      - hotfix/LREG-*
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  calculate-version:
+    name: "Calculate Version"
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.calculate_version.outputs.version }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Calculate Version
+        id: calculate_version
+        uses: cake-build/cake-action@v3
+        env:
+          ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
+        with:
+          script-path: ./version.cake
+          target: GetVersion
+
+      - name: Debug location
+        run: |
+          echo "Current directory: $(pwd)"
+          ls -la
+
+      - name: Store version
+        run: |
+          mkdir -p artifacts
+          echo "${{ steps.calculate_version.outputs.version }}" > artifacts/version.txt
+
+      - name: Upload version artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-version
+          path: artifacts/version.txt
+          if-no-files-found: error
+
+  build-pack:
+    name: "Build and Pack"
+    needs: calculate-version
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Build and package
+        uses: cake-build/cake-action@v3
+        env:
+          ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
+        with:
+          script-path: ./build.cake
+          args: |
+            --target=Pack
+            --product_name=Defra.Core
+            --solution_file_name=Database.slnx
+            --package_version=${{ needs.calculate-version.outputs.version }}
+            --output_dir=artifacts
+
+      - name: Debug artifacts
+        run: |
+          echo "Current directory: $(pwd)"
+          echo "Workspace: ${{ github.workspace }}"
+          ls -la artifacts || echo "artifacts not found"
+          find . -maxdepth 3 -name "*.nupkg"
+          find . -name "artifacts" -type d
+          env | grep GITHUB
+
+      - name: Upload NuGet package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: nuget-packages
+          path: artifacts/*.nupkg
+          if-no-files-found: error
+
+  sonar-analysis:
+    name: "Sonar Analysis"
+    needs: [calculate-version, build-pack]
+    uses: ./.github/workflows/sonar.yml
+    with:
+      version: ${{ needs.calculate-version.outputs.version }}
+    secrets: inherit

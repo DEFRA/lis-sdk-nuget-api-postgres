@@ -1,0 +1,55 @@
+name: "Test and Sonar"
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  get-version:
+    name: "Get Version"
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - name: Read version
+        id: version
+        run: |
+          VERSION="${{ inputs.version }}"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Using version: $VERSION"
+
+  sonar-cloud:
+    name: "SonarCloud Analysis"
+    needs: get-version
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Run tests, coverage and SonarCloud
+        uses: cake-build/cake-action@v3
+        env:
+          ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
+        with:
+          script-path: ./sonar.cake
+          args: |
+            --target=Sonar
+            --product_name=Defra.Core
+            --solution_file_name=Core.slnx
+            --package_version=${{ needs.get-version.outputs.version }}
+            --sonar_token=${{ secrets.SONAR_TOKEN }}
