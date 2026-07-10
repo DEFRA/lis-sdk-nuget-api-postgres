@@ -6,6 +6,9 @@ on:
       version:
         required: true
         type: string
+    secrets:
+      SONAR_TOKEN:
+        required: true
 
 permissions:
   contents: read
@@ -45,11 +48,10 @@ jobs:
         uses: cake-build/cake-action@v3
         env:
           ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
+          PRODUCT_NAME: Defra.Core
+          SOLUTION_FILE_NAME: Core.slnx
+          PACKAGE_VERSION: ${{ needs.get-version.outputs.version }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         with:
           script-path: ./sonar.cake
-          args: |
-            --target=Sonar
-            --product_name=Defra.Core
-            --solution_file_name=Core.slnx
-            --package_version=${{ needs.get-version.outputs.version }}
-            --sonar_token=${{ secrets.SONAR_TOKEN }}
+          target: Sonar

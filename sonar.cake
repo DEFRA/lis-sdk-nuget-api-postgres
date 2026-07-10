@@ -5,10 +5,10 @@
 var target = Argument("target", "Sonar");
 var configuration = Argument("configuration", "Release");
 
-var productName = Argument<string>("product_name", "");
-var solution_file_name = Argument<string>("solution_file_name", "");
-var version = Argument<string>("package_version", "");
-var sonarToken = Argument<string>("sonar_token", "");
+var productName = Argument<string>("product_name", EnvironmentVariable("PRODUCT_NAME") ?? "");
+var solution_file_name = Argument<string>("solution_file_name", EnvironmentVariable("SOLUTION_FILE_NAME") ?? "");
+var version = Argument<string>("package_version", EnvironmentVariable("PACKAGE_VERSION") ?? "");
+var sonarToken = Argument<string>("sonar_token", EnvironmentVariable("SONAR_TOKEN") ?? "");
 const string SonarHostUrl = "https://sonarcloud.io";
 const string SonarOrganization = "defra";
 const string SonarCoverageFile = "coverage.xml";
@@ -28,7 +28,6 @@ Task("Version")
 Task("Sonar-Install")
     .Description("Installs the SonarCloud scanner and dotnet-coverage tools")
     .Does(() => {
-    
          if (string.IsNullOrWhiteSpace(sonarToken))
          {
            throw new Exception("Sonar Cloud token is required to run SonarCloud analysis.");

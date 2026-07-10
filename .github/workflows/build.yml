@@ -69,14 +69,12 @@ jobs:
         uses: cake-build/cake-action@v3
         env:
           ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
+          SOLUTION_FILE_NAME: Database.slnx
+          PACKAGE_VERSION: ${{ needs.calculate-version.outputs.version }}
+          OUTPUT_DIR: artifacts
         with:
           script-path: ./build.cake
-          args: |
-            --target=Pack
-            --product_name=Defra.Core
-            --solution_file_name=Database.slnx
-            --package_version=${{ needs.calculate-version.outputs.version }}
-            --output_dir=artifacts
+          target: Pack
 
       - name: Debug artifacts
         run: |

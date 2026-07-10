@@ -6,10 +6,10 @@
 var target = Argument("target", "Default");
 var configuration = Argument("configuration", "Release");
 
-var PACK_OUTPUT_DIR = Argument("output_dir", "artifacts");
+var PACK_OUTPUT_DIR = Argument("output_dir", EnvironmentVariable("OUTPUT_DIR") ?? "artifacts");
 var TEST_COVERAGE_OUTPUT_DIR = ".coverage";
-var solution_file_name = Argument<string>("solution_file_name", "");
-var version = Argument<string>("package_version", "");
+var solution_file_name = Argument<string>("solution_file_name", EnvironmentVariable("SOLUTION_FILE_NAME") ?? "");
+var version = Argument<string>("package_version", EnvironmentVariable("PACKAGE_VERSION") ?? "");
 var github_token = Argument<string>("github_token", "");
 Task("Clean")
     .Does(() => {
