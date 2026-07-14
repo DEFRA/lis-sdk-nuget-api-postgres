@@ -20,7 +20,7 @@ public class ServiceCollectionExtensionsTests
                 ["PostgresConfiguration:Port"] = "5432"
             })
             .Build();
-        
+
         services.AddSingleton(Substitute.For<ILoggerFactory>());
 
         services.AddPostgresDatabase(configuration);
@@ -44,7 +44,7 @@ public class ServiceCollectionExtensionsTests
                 ["AWS:Region"] = "eu-west-1"
             })
             .Build();
-        
+
         services.AddSingleton(Substitute.For<ILoggerFactory>());
         services.AddSingleton(Substitute.For<Amazon.Runtime.AWSCredentials>());
 
@@ -65,7 +65,7 @@ public class ServiceCollectionExtensionsTests
                 // Region is missing, should default to eu-west-2
             })
             .Build();
-        
+
         services.AddSingleton(Substitute.For<ILoggerFactory>());
         services.AddSingleton(Substitute.For<Amazon.Runtime.AWSCredentials>());
 
@@ -80,10 +80,10 @@ public class ServiceCollectionExtensionsTests
     {
         var services = new ServiceCollection();
         var configuration = new ConfigurationBuilder().Build();
-        
+
         services.AddSingleton(Substitute.For<ILoggerFactory>());
         services.AddPostgresDatabase(configuration);
-        
+
         var serviceProvider = services.BuildServiceProvider();
         serviceProvider.GetService<PostgresConfiguration>().ShouldNotBeNull();
     }
@@ -98,15 +98,15 @@ public class ServiceCollectionExtensionsTests
                 ["ConnectionStrings:PostgresConnection"] = "Host=localhost;Database=test",
             })
             .Build();
-        
+
         services.AddSingleton(Substitute.For<ILoggerFactory>());
         services.AddPostgresDatabase(configuration);
-        
+
         var serviceProvider = services.BuildServiceProvider();
-        
+
         var app = Substitute.For<Microsoft.AspNetCore.Builder.IApplicationBuilder>();
         app.ApplicationServices.Returns(serviceProvider);
-        
+
         app.UsePostgresDatabase();
     }
 }

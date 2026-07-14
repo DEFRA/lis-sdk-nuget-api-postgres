@@ -31,7 +31,7 @@ public class PostgresDataSourceFactoryTests : IDisposable
     {
         _config.UseIamAuthentication = false;
         var dataSource = _factory.CreateDataSource("Default");
-        
+
         dataSource.ShouldNotBeNull();
         dataSource.ConnectionString.ShouldContain("Host=localhost");
     }
@@ -41,7 +41,7 @@ public class PostgresDataSourceFactoryTests : IDisposable
     {
         _config.UseIamAuthentication = false;
         var dataSource = _factory.CreateDataSource("ReadOnly");
-        
+
         dataSource.ShouldNotBeNull();
         dataSource.ConnectionString.ShouldContain("Host=readonly");
     }
@@ -51,24 +51,24 @@ public class PostgresDataSourceFactoryTests : IDisposable
     {
         var config = new PostgresConfiguration { ConnectionString = "Host=fallback" };
         var factory = new PostgresDataSourceFactory(config, _tokenService);
-        
+
         var dataSource = factory.CreateDataSource("ReadOnly");
-        
+
         dataSource.ConnectionString.ShouldContain("Host=fallback");
     }
 
     [Fact]
     public void CreateDataSource_Standard_ReadOnly_WithExplicitNull_FallsBack_To_Default()
     {
-        var config = new PostgresConfiguration 
-        { 
+        var config = new PostgresConfiguration
+        {
             ConnectionString = "Host=fallback",
             ReadOnlyConnectionString = null!
         };
         var factory = new PostgresDataSourceFactory(config, _tokenService);
-        
+
         var dataSource = factory.CreateDataSource("ReadOnly");
-        
+
         dataSource.ConnectionString.ShouldContain("Host=fallback");
     }
 
@@ -83,7 +83,7 @@ public class PostgresDataSourceFactoryTests : IDisposable
     {
         var config = new PostgresConfiguration();
         var factory = new PostgresDataSourceFactory(config, _tokenService);
-        
+
         Should.Throw<InvalidOperationException>(() => factory.CreateDataSource("Default"));
     }
 
@@ -92,7 +92,7 @@ public class PostgresDataSourceFactoryTests : IDisposable
     {
         var ds1 = _factory.CreateDataSource("Default");
         var ds2 = _factory.CreateDataSource("Default");
-        
+
         ds1.ShouldBeSameAs(ds2);
     }
 
@@ -101,7 +101,7 @@ public class PostgresDataSourceFactoryTests : IDisposable
     {
         _config.UseIamAuthentication = true;
         var dataSource = _factory.CreateDataSource("Default");
-        
+
         dataSource.ShouldNotBeNull();
         dataSource.ConnectionString.ShouldContain("Host=default-host");
     }
@@ -111,7 +111,7 @@ public class PostgresDataSourceFactoryTests : IDisposable
     {
         _config.UseIamAuthentication = true;
         var dataSource = _factory.CreateDataSource("ReadOnly");
-        
+
         dataSource.ShouldNotBeNull();
         dataSource.ConnectionString.ShouldContain("Host=readonly-host");
     }
@@ -121,7 +121,7 @@ public class PostgresDataSourceFactoryTests : IDisposable
     {
         var dataSource = _factory.CreateDataSource("Default");
         _factory.Dispose();
-        
+
         Should.Throw<ObjectDisposedException>(() => _factory.CreateDataSource("Default"));
     }
 

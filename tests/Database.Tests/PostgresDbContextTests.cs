@@ -36,13 +36,13 @@ public class PostgresDbContextTests
     {
         var options = CreateOptions();
         using var context = new TestDbContext(options);
-        
+
         var entity = new TestProcessingEntity { Id = Guid.NewGuid(), ReceivedAt = DateTime.UtcNow.AddHours(-1) };
         context.ProcessingEntities.Add(entity);
         context.SaveChanges();
 
         var initialProcessedAt = entity.ProcessedAt;
-        
+
         entity.ReceivedAt = DateTime.UtcNow; // Modify
         context.SaveChanges();
 
@@ -55,13 +55,13 @@ public class PostgresDbContextTests
     {
         var options = CreateOptions();
         using var context = new TestDbContext(options);
-        
+
         var entity = new TestProcessingEntity { Id = Guid.NewGuid(), ReceivedAt = DateTime.UtcNow.AddHours(-1) };
         context.ProcessingEntities.Add(entity);
         await context.SaveChangesAsync();
 
         var initialProcessedAt = entity.ProcessedAt;
-        
+
         entity.ReceivedAt = DateTime.UtcNow; // Modify
         await context.SaveChangesAsync();
 
@@ -74,13 +74,13 @@ public class PostgresDbContextTests
     {
         var options = CreateOptions();
         using var context = new TestDbContext(options);
-        
+
         var entity = new TestAuditEntity { Id = Guid.NewGuid(), CreatedAt = DateTime.UtcNow, CreatedById = Guid.NewGuid() };
         context.AuditEntities.Add(entity);
         context.SaveChanges();
 
         var createdById = entity.CreatedById;
-        
+
         entity.CreatedAt = DateTime.UtcNow.AddMinutes(1); // Modify
         context.SaveChanges();
 

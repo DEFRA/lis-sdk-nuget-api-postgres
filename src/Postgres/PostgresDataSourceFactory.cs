@@ -7,7 +7,7 @@ namespace Defra.Database.Postgres;
 
 public class PostgresDataSourceFactory(PostgresConfiguration configuration,
     ITokenGenerationService tokenGenerationService
-    ) :IDataSourceFactory<NpgsqlDataSource>, IDisposable
+    ) : IDataSourceFactory<NpgsqlDataSource>, IDisposable
 {
     private const string DefaultConnectionIdentifier = "Default";
     private const string ReadOnlyConnectionIdentifier = "ReadOnly";
@@ -16,7 +16,7 @@ public class PostgresDataSourceFactory(PostgresConfiguration configuration,
     private readonly SemaphoreSlim @lock = new(1, 1);
     private bool disposed;
 
- 
+
     public NpgsqlDataSource CreateDataSource(string connectionIdentifier)
     {
         ObjectDisposedException.ThrowIf(disposed, this);

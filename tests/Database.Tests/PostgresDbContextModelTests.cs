@@ -18,12 +18,12 @@ public class PostgresDbContextModelTests
         var options = new DbContextOptionsBuilder<PostgresDbContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .Options;
-        
+
         using var context = new TestDbContext(options);
         var modelBuilder = new ModelBuilder();
-        
+
         context.PublicConfigureModel(modelBuilder);
-        
+
         // We can't easily check all internals of ModelBuilder without a lot of mocking, 
         // but we can at least ensure it doesn't throw and we call it.
     }
@@ -34,9 +34,9 @@ public class PostgresDbContextModelTests
         var options = new DbContextOptionsBuilder<ReadOnlyPostgresDbContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .Options;
-        
+
         using var context = new ReadOnlyPostgresDbContext(options);
-        
+
         Should.Throw<InvalidOperationException>(() => context.SaveChanges())
             .Message.ShouldBe("This context is read-only.");
     }
@@ -47,9 +47,9 @@ public class PostgresDbContextModelTests
         var options = new DbContextOptionsBuilder<ReadOnlyPostgresDbContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .Options;
-        
+
         using var context = new ReadOnlyPostgresDbContext(options);
-        
+
         await Should.ThrowAsync<InvalidOperationException>(async () => await context.SaveChangesAsync())
             .ContinueWith(t => t.Result.Message.ShouldBe("This context is read-only."));
     }

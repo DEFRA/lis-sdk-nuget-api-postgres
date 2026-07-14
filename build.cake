@@ -89,14 +89,43 @@ Task("Restore")
      });
 });
 
-Task("Build")
+Task("Format")
     .IsDependentOn("Restore")
+    .Description("Executing dotnet format")
+    .Does(() => {
+        var settings = new DotNetFormatSettings
+        {
+            VerifyNoChanges = false
+        };
+
+        if (!string.IsNullOrEmpty(solution_file_name))
+        {
+            DotNetFormat(solution_file_name, settings);
+        }
+        else
+        {
+            var projects = GetFiles("./**/*.csproj");
+            if (!projects.Any())
+            {
+                projects = GetFiles("./**/**/*.csproj");
+            }
+            projects.ToList().ForEach(project => {
+                Information($"Formatting {project.ToString()}");
+                DotNetFormat(project.ToString(), settings);
+            });
+        }
+    });
+
+Task("Build")
+    .IsDependentOn("Format")
     .IsDependentOn("Version")
     .Does(() => {
      var buildSettings = new DotNetBuildSettings {
-                        Configuration = configuration,
-                        ArgumentCustomization = args => args.Append($"/p:Version={version}")
-                       };
+                            Configuration = configuration,
+                            ArgumentCustomization = args => args
+                                .Append($"/p:Version={version}")
+                                .Append("/p:WarningsAsErrors=true")
+                           };
      var projects = GetFiles("./**/*.csproj");
      if (!projects.Any())
      {
@@ -189,6 +218,7 @@ Task("Default")
        .IsDependentOn("Clean")
        .IsDependentOn("Version")
        .IsDependentOn("Restore")
+       .IsDependentOn("Format")
        .IsDependentOn("Build")
        .IsDependentOn("Test")
        .IsDependentOn("Pack");
