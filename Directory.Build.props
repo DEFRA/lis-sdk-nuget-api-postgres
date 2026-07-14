@@ -11,8 +11,8 @@
         <PackageProjectUrl>https://www.gov.uk/government/organisations/department-for-environment-food-rural-affairs</PackageProjectUrl>
         <license>https://github.com/threenine/api-template/blob/master/LICENSE</license>
         <PackageIcon>icon.png</PackageIcon>
-        <ProductName>Defra.Database</ProductName>
-        <RootNamespace>Defra</RootNamespace>
+        <ProductName>DefraDigital.Lis.Database</ProductName>
+        <RootNamespace>DefraDigital.Lis.Database</RootNamespace>
     </PropertyGroup>
     <ItemGroup>
         <Content Include="$(MSBuildThisFileDirectory)icon.png" Pack="true" PackagePath="/">
