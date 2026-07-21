@@ -1,0 +1,46 @@
+name: "Calculate Version"
+
+on:
+  workflow_call:
+    inputs:
+      ref:
+        description: "Git ref (branch name) to check out before calculating the version"
+        required: true
+        type: string
+      branch:
+        description: "Override branch name passed to version.cake (needed when GITHUB_HEAD_REF is not set, e.g. pull_request_review events)"
+        required: false
+        type: string
+        default: ""
+    outputs:
+      version:
+        description: "The calculated semantic version"
+        value: ${{ jobs.calculate-version.outputs.version }}
+
+permissions:
+  contents: read
+
+jobs:
+  calculate-version:
+    name: "Calculate Version"
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.calculate_version.outputs.version }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Calculate Version
+        id: calculate_version
+        uses: cake-build/cake-action@v3
+        env:
+          ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
+        with:
+          script-path: ./version.cake
+          target: GetVersion
+          arguments: |
+            branch: ${{ inputs.branch }}

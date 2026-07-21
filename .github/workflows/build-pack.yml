@@ -1,0 +1,51 @@
+name: "Build, Test and Pack"
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        description: "Package version to stamp onto the build"
+        required: true
+        type: string
+      ref:
+        description: "Git ref (branch name) to check out before building"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  build-pack:
+    name: "Build and Pack"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Build, test and package
+        uses: cake-build/cake-action@v3
+        env:
+          ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
+          SOLUTION_FILE_NAME: ${{ vars.SOLUTION_FILE_NAME }}
+          PACKAGE_VERSION: ${{ inputs.version }}
+          OUTPUT_DIR: artifacts
+        with:
+          script-path: ./build.cake
+          target: Pack
+
+      - name: Upload NuGet package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: nuget-packages
+          path: artifacts/*.nupkg
+          if-no-files-found: error

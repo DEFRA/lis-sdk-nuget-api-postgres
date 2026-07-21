@@ -1,0 +1,79 @@
+name: "Pull Request Approved"
+
+on:
+  pull_request_review:
+    types: [submitted]
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  get-version:
+    name: "Calculate Version"
+    if: github.event.review.state == 'approved'
+    uses: ./.github/workflows/version.yml
+    with:
+      ref: ${{ github.event.pull_request.head.ref }}
+      branch: ${{ github.event.pull_request.head.ref }}
+
+  create-tag:
+    name: "Create Git Tag"
+    needs: get-version
+    if: github.event.review.state == 'approved'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Configure git identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Create and push tag
+        uses: cake-build/cake-action@v3
+        env:
+          ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
+        with:
+          script-path: ./tag.cake
+          target: CreateTag
+          arguments: |
+            tag_version: ${{ needs.get-version.outputs.version }}
+
+  build-pack:
+    name: "Build, Test and Pack"
+    needs: get-version
+    if: github.event.review.state == 'approved'
+    uses: ./.github/workflows/build-pack.yml
+    with:
+      version: ${{ needs.get-version.outputs.version }}
+      ref: ${{ github.event.pull_request.head.ref }}
+
+  sonar-analysis:
+    name: "Sonar Analysis"
+    needs: [get-version, build-pack]
+    if: github.event.review.state == 'approved'
+    uses: ./.github/workflows/sonar.yml
+    with:
+      version: ${{ needs.get-version.outputs.version }}
+      ref: ${{ github.event.pull_request.head.ref }}
+    secrets: inherit
+
+  publish-nuget:
+    name: "Publish to NuGet"
+    needs: [get-version, build-pack, sonar-analysis, create-tag]
+    if: github.event.review.state == 'approved' && needs.sonar-analysis.outputs.quality-gate-status == 'PASSED'
+    uses: ./.github/workflows/publish.yml
+    with:
+      version: ${{ needs.get-version.outputs.version }}
+    secrets: inherit

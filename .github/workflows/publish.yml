@@ -1,81 +1,41 @@
-name: "Publish GitHub NuGet"
+name: "Publish NuGet"
 
 on:
-  workflow_run:
-    workflows:
-      - "Build"
-    types:
-      - completed
+  workflow_call:
+    inputs:
+      version:
+        required: true
+        type: string
+    secrets:
+      NUGET_USERNAME:
+        required: true
 
 permissions:
   contents: read
-  packages: write
-  actions: read
+  id-token: write
 
 jobs:
-  download-artifacts:
-    name: "Download Artifacts"
-    runs-on: ubuntu-latest
-    if: >
-      github.event.workflow_run.conclusion == 'success' &&
-      github.event.workflow_run.event == 'push'
-    outputs:
-      run_id: ${{ steps.build_run.outputs.run_id }}
-      version: ${{ steps.version.outputs.version }}
-    steps:
-      - name: Find successful Build workflow run
-        id: build_run
-        run: |
-          echo "run_id=${{ github.event.workflow_run.id }}" >> "$GITHUB_OUTPUT"
-
-      - name: Download version artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: build-version
-          path: artifacts
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          run-id: ${{ steps.build_run.outputs.run_id }}
-
-      - name: Read version
-        id: version
-        run: |
-          VERSION="$(cat artifacts/version.txt)"
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "Using version: $VERSION"
-
   publish-nuget:
     name: "Publish NuGet"
-    needs: download-artifacts
     runs-on: ubuntu-latest
+    environment: development
     steps:
-      - name: Get token
-        uses: actions/create-github-app-token@v3
-        id: app-token
-        with:
-          client-id: ${{ vars.LIS_RELEASE_APP_CLIENT_ID }}
-          private-key: ${{ secrets.LIS_RELEASE_APP_PRIVATE_KEY }}
-          permission-contents: write
-      - name: Download NuGet package artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: nuget-packages
-          path: artifacts
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          run-id: ${{ needs.download-artifacts.outputs.run_id }}
-
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '10.0.x'
 
-      - name: Debug artifacts
-        run: |
-          ls -R artifacts || echo "artifacts not found"
-          find . -name "*.nupkg"
+      - name: Download NuGet packages
+        uses: actions/download-artifact@v4
+        with:
+          name: nuget-packages
+          path: artifacts
 
-      - name: Publish package to GitHub Packages
-        run: |
-          dotnet nuget push "artifacts/*.nupkg" \
-            --source "https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json" \
-            --api-key "${{ steps.app-token.outputs.token }}" \
-            --skip-duplicate
+      - name: NuGet login
+        id: login
+        uses: NuGet/login@v1
+        with:
+          user: ${{ secrets.NUGET_USERNAME }}
+
+      - name: Push to NuGet.org
+        run: dotnet nuget push "artifacts/*.nupkg" --api-key "${{ steps.login.outputs.NUGET_API_KEY }}" --source https://api.nuget.org/v3/index.json --skip-duplicate

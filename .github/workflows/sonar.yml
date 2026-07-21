@@ -6,36 +6,32 @@ on:
       version:
         required: true
         type: string
+      ref:
+        description: "Git ref (branch name) to check out before analysis"
+        required: true
+        type: string
     secrets:
       SONAR_TOKEN:
         required: true
+    outputs:
+      quality-gate-status:
+        description: "SonarCloud quality gate result (PASSED, WARN or FAILED)"
+        value: ${{ jobs.sonar-cloud.outputs.quality-gate-status }}
 
 permissions:
   contents: read
-  id-token: write
 
 jobs:
-  get-version:
-    name: "Get Version"
-    runs-on: ubuntu-latest
-    outputs:
-      version: ${{ steps.version.outputs.version }}
-    steps:
-      - name: Read version
-        id: version
-        run: |
-          VERSION="${{ inputs.version }}"
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "Using version: $VERSION"
-
   sonar-cloud:
     name: "SonarCloud Analysis"
-    needs: get-version
     runs-on: ubuntu-latest
+    outputs:
+      quality-gate-status: ${{ steps.quality_gate.outputs.quality-gate-status }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
+          ref: ${{ inputs.ref }}
           fetch-depth: 0
           fetch-tags: true
 
@@ -48,10 +44,31 @@ jobs:
         uses: cake-build/cake-action@v3
         env:
           ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
-          PRODUCT_NAME: Defra.Database
-          SOLUTION_FILE_NAME: Database.slnx
-          PACKAGE_VERSION: ${{ needs.get-version.outputs.version }}
+          PRODUCT_NAME: ${{ vars.PRODUCT_NAME }}
+          SOLUTION_FILE_NAME:  ${{ vars.SOLUTION_FILE_NAME }}
+          PACKAGE_VERSION: ${{ inputs.version }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         with:
           script-path: ./sonar.cake
           target: Sonar
+
+      - name: Locate SonarCloud report task file
+        id: report_task
+        run: |
+          REPORT_FILE=$(find . -name "report-task.txt" -print -quit)
+          if [ -z "$REPORT_FILE" ]; then
+            echo "report-task.txt not found" >&2
+            exit 1
+          fi
+          echo "Found report task file: $REPORT_FILE"
+          echo "path=$REPORT_FILE" >> "$GITHUB_OUTPUT"
+
+      - name: SonarCloud Quality Gate check
+        id: quality_gate
+        uses: SonarSource/sonarqube-quality-gate-action@master
+        timeout-minutes: 5
+        with:
+          scanMetadataReportFile: ${{ steps.report_task.outputs.path }}
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: https://sonarcloud.io
