@@ -59,7 +59,8 @@ Task("Sonar-Begin")
                 $"/v:\"{version}\"",
                 "/d:sonar.cs.vscoveragexml.reportsPaths=coverage.xml",
                 "/d:sonar.exclusions=\"changelog/**,.github/**\"",
-                "/d:sonar.dotnet.excludeTestProjects=true"
+                "/d:sonar.dotnet.excludeTestProjects=true",
+                "/d:sonar.scanner.metadataFilePath=\"./.sonar/report-task.txt\""
             })
         });
     });

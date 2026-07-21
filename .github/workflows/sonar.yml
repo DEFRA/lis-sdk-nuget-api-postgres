@@ -55,9 +55,9 @@ jobs:
       - name: Locate SonarCloud report task file
         id: report_task
         run: |
-          REPORT_FILE=$(find . -name "report-task.txt" -print -quit)
-          if [ -z "$REPORT_FILE" ]; then
-            echo "report-task.txt not found" >&2
+          REPORT_FILE="./.sonar/report-task.txt"
+          if [ ! -f "$REPORT_FILE" ]; then
+            echo "report-task.txt not found at $REPORT_FILE" >&2
             exit 1
           fi
           echo "Found report task file: $REPORT_FILE"
