@@ -118,21 +118,30 @@ public class PostgresDataSourceFactory(PostgresConfiguration configuration,
 
 #pragma warning disable SA1202
     public void Dispose()
-#pragma warning restore SA1202
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    protected virtual void Dispose(bool disposing)
     {
         if (disposed)
         {
             return;
         }
 
-        foreach (var dataSource in dataSources.Values)
+        if (disposing)
         {
-            dataSource.Dispose();
-        }
+            foreach (var dataSource in dataSources.Values)
+            {
+                dataSource.Dispose();
+            }
 
-        dataSources.Clear();
-        @lock.Dispose();
+            dataSources.Clear();
+            @lock.Dispose();
+        }
 
         disposed = true;
     }
+#pragma warning restore SA1202
 }
