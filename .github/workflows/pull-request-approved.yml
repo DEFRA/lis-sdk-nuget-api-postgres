@@ -68,7 +68,8 @@ jobs:
     with:
       version: ${{ needs.get-version.outputs.version }}
       ref: ${{ github.event.pull_request.head.ref }}
-    secrets: inherit
+    secrets:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
   publish-nuget:
     name: "Publish to NuGet"
@@ -77,7 +78,8 @@ jobs:
     uses: ./.github/workflows/publish.yml
     with:
       version: ${{ needs.get-version.outputs.version }}
-    secrets: inherit
+    secrets:
+      NUGET_USERNAME: ${{ secrets.NUGET_USERNAME }}
 
   create-release:
     name: "Create GitHub Release"
