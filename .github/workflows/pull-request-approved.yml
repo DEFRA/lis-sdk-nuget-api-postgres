@@ -69,7 +69,7 @@ jobs:
       version: ${{ needs.get-version.outputs.version }}
       ref: ${{ github.event.pull_request.head.ref }}
     secrets:
-      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      LIS_SONAR_TOKEN: ${{ secrets.LIS_SONAR_TOKEN }}
 
   publish-nuget:
     name: "Publish to NuGet"

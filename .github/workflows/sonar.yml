@@ -11,7 +11,7 @@ on:
         required: true
         type: string
     secrets:
-      SONAR_TOKEN:
+      LIS_SONAR_TOKEN:
         required: true
     outputs:
       quality-gate-status:
@@ -51,6 +51,8 @@ jobs:
         with:
           script-path: ./sonar.cake
           target: Sonar
+          arguments: |
+            sonar_token: ${{ secrets.LIS_SONAR_TOKEN }}
 
       - name: Locate SonarCloud report task file
         id: report_task
