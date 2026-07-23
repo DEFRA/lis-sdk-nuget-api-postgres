@@ -16,6 +16,7 @@ jobs:
     with:
       ref: ${{ github.event.pull_request.head.ref }}
       branch: ${{ github.event.pull_request.head.ref }}
+      build-number: ${{ github.run_number }}
 
   create-tag:
     name: "Create Git Tag"
@@ -77,3 +78,18 @@ jobs:
     with:
       version: ${{ needs.get-version.outputs.version }}
     secrets: inherit
+
+  create-release:
+    name: "Create GitHub Release"
+    needs: [get-version, create-tag, sonar-analysis, publish-nuget]
+    if: github.event.review.state == 'approved' && needs.sonar-analysis.outputs.quality-gate-status == 'PASSED'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.get-version.outputs.version }}
+          name: "v${{ needs.get-version.outputs.version }}"
+          generate_release_notes: true

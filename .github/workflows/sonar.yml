@@ -47,7 +47,7 @@ jobs:
           PRODUCT_NAME: ${{ vars.PRODUCT_NAME }}
           SOLUTION_FILE_NAME:  ${{ vars.SOLUTION_FILE_NAME }}
           PACKAGE_VERSION: ${{ inputs.version }}
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.LIS_SONAR_TOKEN }}
         with:
           script-path: ./sonar.cake
           target: Sonar
@@ -55,9 +55,9 @@ jobs:
       - name: Locate SonarCloud report task file
         id: report_task
         run: |
-          REPORT_FILE="./.sonar/report-task.txt"
-          if [ ! -f "$REPORT_FILE" ]; then
-            echo "report-task.txt not found at $REPORT_FILE" >&2
+          REPORT_FILE=$(find . -name "report-task.txt" -print -quit)
+          if [ -z "$REPORT_FILE" ]; then
+            echo "report-task.txt not found" >&2
             exit 1
           fi
           echo "Found report task file: $REPORT_FILE"
@@ -70,5 +70,5 @@ jobs:
         with:
           scanMetadataReportFile: ${{ steps.report_task.outputs.path }}
         env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.LIS_SONAR_TOKEN }}
           SONAR_HOST_URL: https://sonarcloud.io

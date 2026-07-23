@@ -12,6 +12,11 @@ on:
         required: false
         type: string
         default: ""
+      build-number:
+        description: "The GitHub build number to include in the version"
+        required: false
+        type: string
+        default: ""
     outputs:
       version:
         description: "The calculated semantic version"
@@ -44,3 +49,4 @@ jobs:
           target: GetVersion
           arguments: |
             branch: ${{ inputs.branch }}
+            buildNumber: ${{ inputs.build-number }}
