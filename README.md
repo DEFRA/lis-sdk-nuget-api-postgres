@@ -11,3 +11,5 @@ This project uses SonarCloud for code quality analysis.
 3. Toggle **Automatic Analysis** to **OFF**.
 
 The CI analysis is performed via GitHub Actions using the `.github/workflows/sonar.yml` workflow and the `sonar.cake` script.
+s
+
