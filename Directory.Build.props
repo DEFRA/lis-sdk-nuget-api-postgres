@@ -8,7 +8,7 @@
          <RepositoryUrl>https://github.com/defra/lis-sdk-nuget-api-postgres</RepositoryUrl>
         <Copyright>Copyright © $([System.DateTime]::Now.ToString("yyyy")) Defra</Copyright>
         <PackageProjectUrl>https://www.gov.uk/government/organisations/department-for-environment-food-rural-affairs</PackageProjectUrl>
-        <license>https://github.com/threenine/api-template/blob/master/LICENSE</license>
+        <PackageLicenseFile>LICENSE</PackageLicenseFile>
         <PackageIcon>icon.png</PackageIcon>
         <ProductName>Defra.Lis.Database</ProductName>
         <RootNamespace>Defra.Lis.Database</RootNamespace>
@@ -18,5 +18,6 @@
         <Content Include="$(MSBuildThisFileDirectory)icon.png" Pack="true" PackagePath="/">
             <CopyToOutputDirectory>Always</CopyToOutputDirectory>
         </Content>
+        <None Include="$(MSBuildThisFileDirectory)LICENSE" Pack="true" PackagePath="/" />
     </ItemGroup>
 </Project>
