@@ -31,4 +31,5 @@ jobs:
     with:
       version: ${{ needs.get-version.outputs.version }}
       ref: ${{ github.ref_name }}
-    secrets: inherit
+    secrets:
+      LIS_SONAR_TOKEN: ${{ secrets.LIS_SONAR_TOKEN }}

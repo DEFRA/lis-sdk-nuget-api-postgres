@@ -17,6 +17,7 @@ public string CalculateVersion()
     var isPullRequest = isGitHubActions && BuildSystem.GitHubActions.Environment.PullRequest.IsPullRequest;
     
     var branchName = Argument("branch", "");
+    var buildNumber = Argument("buildNumber", "");
     
     if (string.IsNullOrWhiteSpace(branchName))
     {
@@ -67,6 +68,10 @@ public string CalculateVersion()
 
         var height = gitVersion.CommitsSinceVersionSource ?? 0;
         calculatedVersion = $"{baseVersion}-{lreg}-alpha.{height}";
+        if (!string.IsNullOrWhiteSpace(buildNumber))
+        {
+            calculatedVersion += $".{buildNumber}";
+        }
     }
     else
     {

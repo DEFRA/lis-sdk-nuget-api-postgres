@@ -32,16 +32,28 @@ Task("Sonar-Install")
          {
            throw new Exception("Sonar Cloud token is required to run SonarCloud analysis.");
          }
+         else
+         {
+           Information($"A valid token was provided ending {sonarToken[^Math.Min(4, sonarToken.Length)..]}");
+         }
         EnsureDirectoryExists("./.sonar/scanner");
         EnsureDirectoryExists("./.sonar/coverage");
 
-        StartProcess("dotnet", new ProcessSettings {
+        var scannerExitCode = StartProcess("dotnet", new ProcessSettings {
             Arguments = "tool update dotnet-sonarscanner --tool-path ./.sonar/scanner"
         });
+        if (scannerExitCode != 0)
+        {
+            throw new Exception($"Failed to install dotnet-sonarscanner tool. Exit code: {scannerExitCode}");
+        }
 
-        StartProcess("dotnet", new ProcessSettings {
+        var coverageToolExitCode = StartProcess("dotnet", new ProcessSettings {
             Arguments = "tool update dotnet-coverage --tool-path ./.sonar/coverage"
         });
+        if (coverageToolExitCode != 0)
+        {
+            throw new Exception($"Failed to install dotnet-coverage tool. Exit code: {coverageToolExitCode}");
+        }
     });
 
 Task("Sonar-Begin")
@@ -49,19 +61,25 @@ Task("Sonar-Begin")
     .IsDependentOn("Version")
     .Description("Starts SonarCloud analysis")
     .Does(() => {
-          StartProcess(SonarScannerPath, new ProcessSettings {
+          var beginExitCode = StartProcess(SonarScannerPath, new ProcessSettings {
             Arguments = string.Join(" ", new [] {
                 "begin",
                 $"/k:\"{productName}\"",
-                "/o:\"defra\"",
+                $"/o:\"{SonarOrganization}\"",
                 $"/d:sonar.token=\"{sonarToken}\"",
                 $"/d:sonar.host.url=\"{SonarHostUrl}\"",
                 $"/v:\"{version}\"",
+                "/d:sonar.scanner.skipAutomatic=true",
+                "/d:sonar.scanner.scanAll=false",
                 "/d:sonar.cs.vscoveragexml.reportsPaths=coverage.xml",
                 "/d:sonar.exclusions=\"changelog/**,.github/**\"",
                 "/d:sonar.dotnet.excludeTestProjects=true"
             })
         });
+        if (beginExitCode != 0)
+        {
+            throw new Exception($"SonarCloud 'begin' step failed. Exit code: {beginExitCode}");
+        }
     });
 
 Task("Sonar-Build")
@@ -79,19 +97,26 @@ Task("Sonar-Test")
     .IsDependentOn("Sonar-Build")
     .Description("Runs tests and collects coverage for SonarCloud")
     .Does(() => {
-        StartProcess(DotNetCoveragePath, new ProcessSettings {
+        var coverageExitCode = StartProcess(DotNetCoveragePath, new ProcessSettings {
             Arguments = $"collect \"dotnet test --configuration {configuration} --no-build\" -f xml -o \"{SonarCoverageFile}\""
         });
+        if (coverageExitCode != 0)
+        {
+            throw new Exception($"Test coverage collection failed. Exit code: {coverageExitCode}");
+        }
     });
 
 Task("Sonar-End")
     .IsDependentOn("Sonar-Test")
     .Description("Completes SonarCloud analysis")
     .Does(() => {
-       
-        StartProcess(SonarScannerPath, new ProcessSettings {
+        var endExitCode = StartProcess(SonarScannerPath, new ProcessSettings {
             Arguments = $"end /d:sonar.token=\"{sonarToken}\""
         });
+        if (endExitCode != 0)
+        {
+            throw new Exception($"SonarCloud 'end' step failed. Exit code: {endExitCode}");
+        }
     });
 
 Task("Sonar")
