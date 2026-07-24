@@ -70,6 +70,7 @@ Task("Sonar-Begin")
                 $"/d:sonar.host.url=\"{SonarHostUrl}\"",
                 $"/v:\"{version}\"",
                 "/d:sonar.scanner.skipAutomatic=true",
+                "/d:sonar.projectBaseDir=\".\"",
                 "/d:sonar.cs.vscoveragexml.reportsPaths=coverage.xml",
                 "/d:sonar.exclusions=\"changelog/**,.github/**\"",
                 "/d:sonar.dotnet.excludeTestProjects=true"
