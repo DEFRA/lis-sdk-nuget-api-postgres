@@ -126,7 +126,7 @@ public static class ServiceCollectionExtensions
                              ?? new PostgresConfiguration();
 
         postgresConfig.ConnectionString =
-            configuration.GetConnectionString(Constants.ConnectionStringName) ?? string.Empty;
+            configuration.GetConnectionString(Constants.ReadWriteConnectionStringName) ?? string.Empty;
         postgresConfig.ReadOnlyConnectionString =
             configuration.GetConnectionString(Constants.ReadOnlyConnectionStringName) ?? string.Empty;
 
