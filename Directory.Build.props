@@ -6,7 +6,7 @@
         <Description>Defra .net postgre database project templates</Description>
         <RepositoryType>git</RepositoryType>
          <RepositoryUrl>https://github.com/defra/lis-sdk-nuget-api-postgres</RepositoryUrl>
-        <Copyright>Copyright © $([System.DateTime]::Now.ToString("yyyy")) Defra</Copyright>
+        <Copyright>Copyright © Defra $([System.DateTime]::Now.ToString("yyyy")) </Copyright>
         <PackageProjectUrl>https://www.gov.uk/government/organisations/department-for-environment-food-rural-affairs</PackageProjectUrl>
         <PackageLicenseFile>LICENSE</PackageLicenseFile>
         <PackageIcon>icon.png</PackageIcon>

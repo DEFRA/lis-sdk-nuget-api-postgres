@@ -16,7 +16,7 @@ public class PostgresDataSourceFactoryTests : IDisposable
         {
             ConnectionString = "Host=localhost;Database=test",
             ReadOnlyConnectionString = "Host=readonly;Database=test",
-            DefaultHost = "default-host",
+            ReadWriteHost = "default-host",
             ReadOnlyHost = "readonly-host",
             Port = 5432,
             Name = "test-db",

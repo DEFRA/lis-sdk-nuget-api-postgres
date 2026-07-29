@@ -4,7 +4,7 @@ public class PostgresConfiguration
 {
     public bool UseIamAuthentication { get; set; } = false;
 
-    public string DefaultHost { get; init; } = string.Empty;
+    public string ReadWriteHost { get; init; } = string.Empty;
 
     public string ReadOnlyHost { get; init; } = string.Empty;
 
