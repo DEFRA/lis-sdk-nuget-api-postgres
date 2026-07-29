@@ -17,7 +17,7 @@ public class ServiceCollectionExtensionsTests
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
-                ["ConnectionStrings:PostgresConnection"] = "Host=localhost;Database=test",
+                ["ConnectionStrings:ReadWritePostgresConnection"] = "Host=localhost;Database=test",
                 ["PostgresConfiguration:Port"] = "5432"
             })
             .Build();
@@ -96,7 +96,7 @@ public class ServiceCollectionExtensionsTests
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
-                ["ConnectionStrings:PostgresConnection"] = "Host=localhost;Database=test",
+                ["ConnectionStrings:ReadWritePostgresConnection"] = "Host=localhost;Database=test",
             })
             .Build();
 

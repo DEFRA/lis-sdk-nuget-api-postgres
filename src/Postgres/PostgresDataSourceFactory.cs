@@ -82,7 +82,7 @@ public class PostgresDataSourceFactory(PostgresConfiguration configuration,
     {
         var host = connectionIdentifier switch
         {
-            DefaultConnectionIdentifier => configuration.DefaultHost,
+            DefaultConnectionIdentifier => configuration.ReadWriteHost,
             ReadOnlyConnectionIdentifier => configuration.ReadOnlyHost,
             _ => throw new ArgumentException($"Unknown connection identifier: {connectionIdentifier}"),
         };
