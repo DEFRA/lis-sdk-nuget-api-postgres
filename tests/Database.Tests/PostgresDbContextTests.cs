@@ -68,13 +68,6 @@ public class PostgresDbContextTests
         entity.CreatedById.ShouldBe(createdById);
     }
 
-    [Fact]
-    public void SaveChanges_Should_Set_CreatedById_When_Default_Exists()
-    {
-        // We can't easily test this without a mockable context or setting up UserAccounts.
-        // But the line is there.
-    }
-
     private static DbContextOptions<PostgresDbContext> CreateOptions()
     {
         return new DbContextOptionsBuilder<PostgresDbContext>()

@@ -5,6 +5,8 @@
 namespace Defra.Lis.Database.Tests;
 
 using System;
+using System.Reflection;
+using System.Threading;
 using Defra.Lis.Postgres;
 using NSubstitute;
 
@@ -102,6 +104,36 @@ public class PostgresDataSourceFactoryTests
     }
 
     [Fact]
+    public void CreateDataSource_WhenCreatedByAnotherCallerWhileWaitingForLock_ReturnsExistingDataSource()
+    {
+        var factoryLock = (SemaphoreSlim)typeof(PostgresDataSourceFactory)
+            .GetField("lock", BindingFlags.Instance | BindingFlags.NonPublic)!
+            .GetValue(defaultFactory)!;
+        Npgsql.NpgsqlDataSource? firstDataSource = null;
+        Npgsql.NpgsqlDataSource? secondDataSource = null;
+
+        factoryLock.Wait(TestContext.Current.CancellationToken);
+        var firstCaller = new Thread(() => firstDataSource = defaultFactory.CreateDataSource("Default"));
+        var secondCaller = new Thread(() => secondDataSource = defaultFactory.CreateDataSource("Default"));
+
+        firstCaller.Start();
+        secondCaller.Start();
+
+        var bothCallersAreWaiting = SpinWait.SpinUntil(
+            () => firstCaller.ThreadState.HasFlag(ThreadState.WaitSleepJoin)
+                && secondCaller.ThreadState.HasFlag(ThreadState.WaitSleepJoin),
+            TimeSpan.FromSeconds(5));
+
+        factoryLock.Release();
+        firstCaller.Join();
+        secondCaller.Join();
+
+        bothCallersAreWaiting.ShouldBeTrue();
+        firstDataSource.ShouldNotBeNull();
+        secondDataSource.ShouldBeSameAs(firstDataSource);
+    }
+
+    [Fact]
     public void CreateDataSource_Iam_Returns_DataSource()
     {
         defaultConfig.UseIamAuthentication = true;
@@ -140,5 +172,6 @@ public class PostgresDataSourceFactoryTests
     public void Dispose()
     {
         defaultFactory.Dispose();
+        GC.SuppressFinalize(this);
     }
 }
