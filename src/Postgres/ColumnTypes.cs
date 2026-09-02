@@ -1,4 +1,8 @@
-namespace Defra.Database.Postgres;
+// <copyright file="ColumnTypes.cs" company="Defra">
+// Copyright (c) Defra. All rights reserved.
+// </copyright>
+
+namespace Defra.Lis.Postgres;
 
 public static class ColumnTypes
 {

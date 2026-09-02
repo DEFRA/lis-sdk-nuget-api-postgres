@@ -1,13 +1,19 @@
+// <copyright file="PostgresDataSourceFactory.cs" company="Defra">
+// Copyright (c) Defra. All rights reserved.
+// </copyright>
+
+namespace Defra.Lis.Postgres;
+
 using System;
 using System.Collections.Generic;
 using System.Threading;
+using Defra.Lis.Database;
 using Npgsql;
 
-namespace Defra.Database.Postgres;
-
-public class PostgresDataSourceFactory(PostgresConfiguration configuration,
-    ITokenGenerationService tokenGenerationService
-    ) : IDataSourceFactory<NpgsqlDataSource>, IDisposable
+public class PostgresDataSourceFactory(
+    PostgresConfiguration configuration,
+    ITokenGenerationService tokenGenerationService)
+    : IDataSourceFactory<NpgsqlDataSource>, IDisposable
 {
     private const string DefaultConnectionIdentifier = "Default";
     private const string ReadOnlyConnectionIdentifier = "ReadOnly";
@@ -15,7 +21,6 @@ public class PostgresDataSourceFactory(PostgresConfiguration configuration,
     private readonly Dictionary<string, NpgsqlDataSource> dataSources = new();
     private readonly SemaphoreSlim @lock = new(1, 1);
     private bool disposed;
-
 
     public NpgsqlDataSource CreateDataSource(string connectionIdentifier)
     {
@@ -104,10 +109,10 @@ public class PostgresDataSourceFactory(PostgresConfiguration configuration,
         builder.UsePeriodicPasswordProvider(
             passwordProvider: async (_, _) =>
             {
-                var token = await tokenGenerationService!.GenerateTokenAsync(
+                var token = await tokenGenerationService.GenerateTokenAsync(
                     host,
                     configuration.Port,
-                    configuration.User!);
+                    configuration.User);
                 return token;
             },
             successRefreshInterval: TimeSpan.FromMinutes(10), // Refresh every 10 minutes

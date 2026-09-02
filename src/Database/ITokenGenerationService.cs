@@ -1,4 +1,10 @@
-﻿namespace Defra.Database;
+﻿// <copyright file="ITokenGenerationService.cs" company="Defra">
+// Copyright (c) Defra. All rights reserved.
+// </copyright>
+
+namespace Defra.Lis.Database;
+
+using System.Threading.Tasks;
 
 public interface ITokenGenerationService
 {

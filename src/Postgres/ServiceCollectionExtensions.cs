@@ -1,15 +1,19 @@
+// <copyright file="ServiceCollectionExtensions.cs" company="Defra">
+// Copyright (c) Defra. All rights reserved.
+// </copyright>
+
+namespace Defra.Lis.Postgres;
+
 using System;
 using Amazon;
 using Amazon.Runtime;
 using Amazon.Runtime.Credentials;
-using Microsoft.AspNetCore.Builder;
+using Defra.Lis.Database;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Npgsql;
-
-namespace Defra.Database.Postgres;
 
 public static class ServiceCollectionExtensions
 {

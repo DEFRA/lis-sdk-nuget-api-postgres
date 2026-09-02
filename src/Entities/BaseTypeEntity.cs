@@ -2,9 +2,9 @@
 // Copyright (c) Defra. All rights reserved.
 // </copyright>
 
-using System;
+namespace Defra.Lis.Entities;
 
-namespace Defra.Database.Entities;
+using System;
 
 public abstract class BaseTypeEntity
 {

@@ -1,27 +1,30 @@
-name: "Publish NuGet"
+#file: noinspection UndefinedParamsPresent,UndefinedAction
+name: 'Publish NuGet Packages'
 
 on:
   workflow_call:
-    inputs:
-      version:
-        required: true
-        type: string
     secrets:
       NUGET_USERNAME:
         required: true
 
+concurrency:
+  group: nuget-publish-${{ github.ref }}
+  cancel-in-progress: false
+
 permissions:
+  actions: read
   contents: read
   id-token: write
 
 jobs:
   publish-nuget:
-    name: "Publish NuGet"
+    name: 'Publish NuGet Packages'
     runs-on: ubuntu-latest
     environment: release
+
     steps:
       - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
           dotnet-version: '10.0.x'
 
@@ -29,7 +32,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: nuget-packages
-          path: artifacts
+          path: artefacts
 
       - name: NuGet trusted publishing login
         id: nuget-login
@@ -39,7 +42,7 @@ jobs:
 
       - name: Push to NuGet.org
         run: |
-          dotnet nuget push "artifacts/*.nupkg" \
+          dotnet nuget push "artefacts/*.nupkg" \
             --api-key "${{ steps.nuget-login.outputs.NUGET_API_KEY }}" \
             --source "https://api.nuget.org/v3/index.json" \
             --skip-duplicate

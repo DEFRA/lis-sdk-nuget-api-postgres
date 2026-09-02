@@ -1,6 +1,4 @@
 <Project>
-    <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))"/>
-    <PropertyGroup>
-        <RootNamespace>DefraDigital.Lis.Database.Tests</RootNamespace>
-    </PropertyGroup>
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
+  
 </Project>

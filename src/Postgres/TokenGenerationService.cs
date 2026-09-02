@@ -1,11 +1,18 @@
+// <copyright file="TokenGenerationService.cs" company="Defra">
+// Copyright (c) Defra. All rights reserved.
+// </copyright>
+
+namespace Defra.Lis.Postgres;
+
 using System.Threading.Tasks;
 using Amazon;
 using Amazon.RDS.Util;
 using Amazon.Runtime;
+using Defra.Lis.Database;
 
-namespace Defra.Database.Postgres;
-
-public class TokenGenerationService(AWSCredentials credentials, RegionEndpoint region)
+public class TokenGenerationService(
+    AWSCredentials credentials,
+    RegionEndpoint region)
     : ITokenGenerationService
 {
     public Task<string> GenerateTokenAsync(string hostname, int port, string username)

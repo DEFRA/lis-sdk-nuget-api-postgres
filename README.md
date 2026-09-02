@@ -1,101 +1,74 @@
-# Defra.Database.Postgres
+# Defra database libraries
 
-A .NET library for PostgreSQL database integration, supporting standard connection strings and AWS IAM authentication with Entity Framework Core.
+Reusable .NET 10 libraries for Entity Framework Core and PostgreSQL applications. The solution provides shared database abstractions, common entity base classes, and an opinionated PostgreSQL integration with optional AWS RDS IAM authentication.
 
-## Features
+## Packages
 
-- **Standard Connection**: Connect using traditional PostgreSQL connection strings.
-- **IAM Authentication**: Secure connection to AWS RDS using IAM roles and tokens.
-- **Read/Write Splitting**: Support for separate read-write and read-only database contexts.
-- **Resilience**: Built-in retry policy for transient database errors.
-- **EF Core Integration**: Pre-configured `DbContext` setup for PostgreSQL.
+| Package | Purpose |
+| --- | --- |
+| `Defra.Lis.Database` | EF Core base context and abstractions for data sources and authentication tokens. |
+| `Defra.Lis.Entities` | Reusable audit, processing, and lookup/type entity base classes. |
+| `Defra.Lis.Postgres` | PostgreSQL contexts, dependency injection, read/write separation, retries, and AWS RDS IAM authentication. |
 
-## Installation
+See the package documentation for more detail:
 
-Register the services in your `Program.cs` or `Startup.cs`:
+- [Database](src/Database/README.md)
+- [Entities](src/Entities/README.md)
+- [Postgres](src/Postgres/README.md)
 
-```csharp
-using Defra.Database.Postgres;
+## Quick start
 
-public void ConfigureServices(IServiceCollection services)
-{
-    // Add PostgreSQL services
-    services.AddPostgresDatabase(Configuration);
-}
+Install the PostgreSQL package:
 
-public void Configure(IApplicationBuilder app)
-{
-    // Optional: Use database (checks connection)
-    app.UsePostgresDatabase();
-}
+```bash
+dotnet add package Defra.Lis.Postgres
 ```
 
-## Configuration
-
-The library uses `IConfiguration` to retrieve settings. You can configure it via `appsettings.json`, environment variables, or other configuration providers.
-
-### Standard Connection Strings
-
-Add the following connection strings to your configuration:
+Configure a connection string in `appsettings.json`:
 
 ```json
 {
   "ConnectionStrings": {
-    "ReadWritePostgresConnection": "Host=your-host;Database=your-db;Username=your-user;Password=your-password",
-    "ReadOnlyPostgresConnection": "Host=your-readonly-host;Database=your-db;Username=your-user;Password=your-password"
+    "ReadWritePostgresConnection": "Host=localhost;Port=5432;Database=app;Username=postgres;Password=postgres"
   }
 }
 ```
 
-- `ReadWritePostgresConnection`: Used by `PostgresDbContext`.
-- `ReadOnlyPostgresConnection`: Used by `ReadOnlyPostgresDbContext`. If not provided, it falls back to the read-write connection.
-
-### AWS IAM Authentication
-
-To use IAM authentication, configure the `PostgresConfiguration` section:
-
-```json
-{
-  "PostgresConfiguration": {
-    "UseIamAuthentication": true,
-    "ReadWriteHost": "your-rds-endpoint",
-    "ReadOnlyHost": "your-readonly-rds-endpoint",
-    "Port": 5432,
-    "Name": "your-database-name",
-    "User": "iam-database-user"
-  },
-  "AWS": {
-    "Region": "eu-west-2"
-  }
-}
-```
-
-If `UseIamAuthentication` is `true`, the library will ignore standard connection strings and use the provided host and user information to generate IAM tokens for authentication.
-
-## Usage
-
-Inject the appropriate context into your services:
+Register the contexts in `Program.cs`:
 
 ```csharp
-public class MyService(PostgresDbContext dbContext, ReadOnlyPostgresDbContext readOnlyDbContext)
-{
-    public async Task DoWork()
-    {
-        // Use dbContext for write operations
-        // Use readOnlyDbContext for optimized read operations (no tracking)
-    }
-}
+using Defra.Database.Postgres;
+
+builder.Services.AddPostgresDatabase(builder.Configuration);
+
+var app = builder.Build();
+app.UsePostgresDatabase();
 ```
 
-## SonarCloud Analysis
+`PostgresDbContext` is registered for reads and writes. `ReadOnlyPostgresDbContext` uses no-tracking queries and rejects calls to `SaveChanges` and `SaveChangesAsync`. If no read-only connection is configured, it uses the read/write connection.
 
-This project uses SonarCloud for code quality analysis.
+For AWS RDS IAM configuration and detailed behavior, see the [Postgres package README](src/Postgres/README.md).
 
-**Important:** To avoid conflicts between CI-based analysis and SonarCloud Automatic Analysis, ensure that **Automatic Analysis** is **disabled** in the SonarCloud project settings:
-1. Go to your project in SonarCloud.
-2. Navigate to **Administration** > **Analysis Method**.
-3. Toggle **Automatic Analysis** to **OFF**.
+## Development
 
-The CI analysis is performed via GitHub Actions using the `.github/workflows/sonar.yml` workflow and the `sonar.cake` script.
+The repository requires the .NET SDK selected by `global.json` (currently .NET 10).
 
+```bash
+dotnet restore Database.slnx
+dotnet build Database.slnx
+dotnet test Database.slnx
+```
 
+Packages can be created locally with:
+
+```bash
+dotnet pack Database.slnx --configuration Release
+```
+
+## SonarCloud
+
+Pull requests run build, test, coverage, and SonarCloud quality-gate checks in GitHub Actions. SonarCloud Automatic Analysis should remain disabled to prevent it conflicting with CI analysis.
+
+## Licence
+
+This project is licensed under the terms in [LICENSE](LICENSE).

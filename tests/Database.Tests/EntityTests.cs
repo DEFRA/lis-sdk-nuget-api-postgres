@@ -1,14 +1,14 @@
-using System;
-using Defra.Database.Entities;
+// <copyright file="EntityTests.cs" company="Defra">
+// Copyright (c) Defra. All rights reserved.
+// </copyright>
 
-namespace Defra.Database.Tests;
+namespace Defra.Lis.Database.Tests;
+
+using System;
+using Defra.Lis.Entities;
 
 public class EntityTests
 {
-    private class TestProcessingEntity : BaseProcessingEntity { }
-    private class TestAuditEntity : BaseAuditEntity { }
-    private class TestTypeEntity : BaseTypeEntity { }
-
     [Fact]
     public void BaseProcessingEntity_Should_Store_Properties()
     {
@@ -20,7 +20,7 @@ public class EntityTests
         {
             Id = id,
             ReceivedAt = receivedAt,
-            ProcessedAt = processedAt
+            ProcessedAt = processedAt,
         };
 
         entity.Id.ShouldBe(id);
@@ -43,7 +43,7 @@ public class EntityTests
             CreatedAt = createdAt,
             CreatedById = createdById,
             DeletedAt = deletedAt,
-            DeletedById = deletedById
+            DeletedById = deletedById,
         };
 
         entity.Id.ShouldBe(id);
@@ -64,11 +64,17 @@ public class EntityTests
         {
             Id = id,
             Name = name,
-            Description = description
+            Description = description,
         };
 
         entity.Id.ShouldBe(id);
         entity.Name.ShouldBe(name);
         entity.Description.ShouldBe(description);
     }
+
+    private class TestProcessingEntity : BaseProcessingEntity;
+
+    private class TestAuditEntity : BaseAuditEntity;
+
+    private class TestTypeEntity : BaseTypeEntity;
 }

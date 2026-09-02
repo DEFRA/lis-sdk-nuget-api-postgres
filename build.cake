@@ -1,96 +1,97 @@
 #nullable enable
-#addin nuget:?package=Cake.Coverlet&version=5.1.1
 #tool dotnet:?package=dotnet-reportgenerator-globaltool&version=5.5.1
-#load "base.cake" 
+#load "base.cake"
 #load "version.cake"
-var target = Argument("target", "Default");
-var configuration = Argument("configuration", "Release");
 
-var PACK_OUTPUT_DIR = Argument("output_dir", EnvironmentVariable("OUTPUT_DIR") ?? "artifacts");
-var TEST_COVERAGE_OUTPUT_DIR = ".coverage";
-var solution_file_name = Argument<string>("solution_file_name", EnvironmentVariable("SOLUTION_FILE_NAME") ?? "");
-var version = Argument<string>("package_version", EnvironmentVariable("PACKAGE_VERSION") ?? "");
-var github_token = Argument<string>("github_token", "");
+var target = Argument("target", "Default");
+var version = Argument("package_version", EnvironmentVariable("PACKAGE_VERSION") ?? "");
+var imageName = Argument("image_name", EnvironmentVariable("IMAGE_NAME") ?? "");
+var imageRef = Argument("image_ref", EnvironmentVariable("IMAGE_REF") ?? "");
+var revision = Argument("revision", EnvironmentVariable("REVISION") ?? "");
+private readonly string SOLUTION_FILE = GetSolutionFile();
+private const string CONFIGURATION = "release";
+private const DotNetVerbosity VERBOSITY = DotNetVerbosity.Minimal;
+
+string RequiredValue(string value, string name)
+{
+    if (string.IsNullOrWhiteSpace(value))
+    {
+        throw new Exception($"{name} is required to build the container image.");
+    }
+
+    return value;
+}
+
+Action buildContainerImage = () =>
+{
+    var resolvedImageName = RequiredValue(imageName, "IMAGE_NAME");
+    var resolvedImageRef = string.IsNullOrWhiteSpace(imageRef)
+        ? $"{resolvedImageName}:{version}"
+        : imageRef;
+    var resolvedRevision = RequiredValue(revision, "REVISION");
+    var repository = EnvironmentVariable("GITHUB_REPOSITORY") ?? resolvedImageName;
+    var serverUrl = EnvironmentVariable("GITHUB_SERVER_URL") ?? "https://github.com";
+    var runId = EnvironmentVariable("GITHUB_RUN_ID") ?? "local";
+
+    Information($"Building production container image {resolvedImageRef}");
+    RunCommand(
+        "docker",
+        "buildx build . " +
+        "--file ./Dockerfile " +
+        "--target production " +
+        "--no-cache --provenance=false --sbom=false --load " +
+        $"--tag \"{resolvedImageRef}\" " +
+        $"--label \"defra.cdp.git.repo.url={serverUrl}/{repository}\" " +
+        $"--label \"defra.cdp.git.repo.name={repository}\" " +
+        $"--label \"defra.cdp.service.name={resolvedImageName}\" " +
+        $"--label \"defra.cdp.build.run_id={runId}\" " +
+        "--label \"defra.cdp.run_mode=service\" " +
+        $"--label \"git.hash={resolvedRevision}\" " +
+        $"--label \"org.opencontainers.image.version={version}\"");
+};
+
 Task("Clean")
-    .Does(() => {
- 
-   if (BuildSystem.GitHubActions.IsRunningOnGitHubActions)
+    .Does(() => 
     {
-      Information("Nothing to clean on Github Pipelines.");
-    }
-    else
-    {
-        var cleanSettings = new DotNetCleanSettings
+        var settings = new DotNetCleanSettings
         {
-            Verbosity = DotNetVerbosity.Minimal,
-            Configuration = configuration
+            Verbosity = VERBOSITY,
+            Configuration = CONFIGURATION
         };
-        
-        if (!string.IsNullOrEmpty(solution_file_name))
-        {
-            DotNetClean(solution_file_name, cleanSettings);
-        }
-        else
-        {
-            var projects = GetFiles("./**/*.csproj");
-            if (!projects.Any())
-            {
-                projects = GetFiles("./**/**/*.csproj");
-            }
-            projects.ToList().ForEach(project => {
-                DotNetClean(project.ToString(), cleanSettings);
-                Information($"Cleaning project {project.ToString()}");
-            });
-        }
-    }
-});
+        DotNetClean(SOLUTION_FILE, settings);
+    });
 
 Task("Version")
-     .IsDependentOn("Clean")
-     .Description("Generate the version number for the assembly")
-     .Does(() => {
-      if (BuildSystem.GitHubActions.IsRunningOnGitHubActions)
-         {
-           if(string.IsNullOrEmpty(version))
-           {
-             version = CalculateVersion();
-           }
-         }
-         else
-         {
-             if(string.IsNullOrEmpty(version))
-             {
-                version = CalculateVersion();
-             }
-         }
-         Information($"Version {version}");
-});
-Task("Restore")
+    .IsDependentOn("Clean")
+    .Description("Calculates the npm package version")
+    .Does(() =>
+    {
+        if (string.IsNullOrWhiteSpace(version))
+        {
+            version = CalculateVersion();
+        }
+
+        Information($"Version {version}");
+    });
+
+Task("Install")
     .IsDependentOn("Version")
     .Description("Restoring the solution dependencies")
     .Does(() => {
-    
-    Information("Restoring the solution dependencies");
-      var settings =  new DotNetRestoreSettings
+        Information("Restoring the solution dependencies");
+        var settings = new DotNetRestoreSettings
         {
-          Verbosity = DotNetVerbosity.Minimal,
-          Sources = new [] { 
-             "https://api.nuget.org/v3/index.json",
-          }
+            Verbosity = VERBOSITY,
+            Sources = new [] 
+            { 
+                "https://api.nuget.org/v3/index.json",
+            }
         };
-   var projects = GetFiles("./**/*.csproj");
-   if (!projects.Any())
-   {
-       projects = GetFiles("./**/**/*.csproj");
-   }
-   projects.ToList().ForEach(project => {
-       Information($"Restoring {project.ToString()}");
-       DotNetRestore(project.ToString(), settings);
-     });
-});
+        DotNetRestore(SOLUTION_FILE, settings);
+    });
 
 Task("Format")
-    .IsDependentOn("Restore")
+    .IsDependentOn("Install")
     .Description("Executing dotnet format")
     .Does(() => {
         var settings = new DotNetFormatSettings
@@ -98,129 +99,77 @@ Task("Format")
             VerifyNoChanges = false
         };
 
-        if (!string.IsNullOrEmpty(solution_file_name))
-        {
-            DotNetFormat(solution_file_name, settings);
-        }
-        else
-        {
-            var projects = GetFiles("./**/*.csproj");
-            if (!projects.Any())
-            {
-                projects = GetFiles("./**/**/*.csproj");
-            }
-            projects.ToList().ForEach(project => {
-                Information($"Formatting {project.ToString()}");
-                DotNetFormat(project.ToString(), settings);
-            });
-        }
+        DotNetFormat(SOLUTION_FILE, settings);
     });
 
 Task("Build")
     .IsDependentOn("Format")
     .IsDependentOn("Version")
     .Does(() => {
-     var buildSettings = new DotNetBuildSettings {
-                            Configuration = configuration,
-                            ArgumentCustomization = args => args
-                                .Append($"/p:Version={version}")
-                                .Append("/p:WarningsAsErrors=true")
-                           };
-     var projects = GetFiles("./**/*.csproj");
-     if (!projects.Any())
-     {
-         projects = GetFiles("./**/**/*.csproj");
-     }
-     projects.ToList().ForEach(project => {
-         Information($"Building {project.ToString()}");
-         DotNetBuild(project.ToString(),buildSettings);
+        var settings = new DotNetBuildSettings {
+            Verbosity = VERBOSITY,
+            Configuration = CONFIGURATION,
+            ArgumentCustomization = args => args
+                .Append($"/p:Version={version}")
+                .Append("/p:WarningsAsErrors=true")
+            };
+        DotNetBuild(SOLUTION_FILE, settings);
      });
-});
 
 Task("Test")
     .IsDependentOn("Build")
     .Does(() => {
-       
-       var testSettings = new DotNetTestSettings  {
-                 Configuration = configuration,
-       };
-        var coverageOutput = Directory(TEST_COVERAGE_OUTPUT_DIR);             
-     
-       var testProjects = GetFiles("./tests/**/*.csproj");
-       if (!testProjects.Any())
-       {
-           testProjects = GetFiles("./tests/**/*.csproj");
-       }
+        var testSettings = new DotNetTestSettings  {
+            Verbosity = VERBOSITY,
+            Configuration = CONFIGURATION,
+        };
+        var coverageOutput = DirectoryPath.FromString("./coverage");
+        
+        var testProjects = GetFiles("./tests/**/*.csproj");
+        if (!testProjects.Any())
+        {
+            testProjects = GetFiles("./tests/**/*.csproj");
+        }
 
-       testProjects.ToList().ForEach(project => {
-          Information($"Testing Project : {project.ToString()}");
+        testProjects.ToList().ForEach(project => {
+            Information($"Testing Project : {project.ToString()}");
             
-          var codeCoverageOutputName = $"{project.GetFilenameWithoutExtension()}.cobertura.xml";
-          var coverletSettings = new CoverletSettings {
-              CollectCoverage = true,
-               CoverletOutputFormat = CoverletOutputFormat.cobertura,
-               CoverletOutputDirectory =  coverageOutput,
-               CoverletOutputName =codeCoverageOutputName,
-               ArgumentCustomization = args => args.Append("--logger trx")
-          };
-                  
-          Information($"Running Tests : { project.ToString()}");
-          DotNetTest(project.ToString(), testSettings, coverletSettings );        
+            Information($"Running Tests : { project.ToString()}");
+            var projectCoverageDirectory = DirectoryPath.FromString(
+                project.GetFilenameWithoutExtension().ToString());
+            testSettings.ResultsDirectory = coverageOutput.Combine(projectCoverageDirectory);
+            testSettings.ArgumentCustomization = args => args
+                .AppendQuoted("--collect:XPlat Code Coverage")
+                .Append("--logger trx");
+            DotNetTest(project.ToString(), testSettings);
         });
-         Information($"Directory Path : { coverageOutput.ToString()}");
-                  
-              var glob = new GlobPattern($"./{ coverageOutput}/*.cobertura.xml");
+        
+        Information($"Directory Path : { coverageOutput.ToString()}");
+        var glob = new GlobPattern($"./{coverageOutput}/**/coverage.cobertura.xml");
                  
-              Information($"globpattern : { glob.ToString()}");
-              var outputDirectory = Directory($"./{TEST_COVERAGE_OUTPUT_DIR}/reports");
-             
-             Information($"output Directory : { outputDirectory}");
-              var reportSettings = new ReportGeneratorSettings
-              {
-                 ArgumentCustomization = args => args.Append($"-reportTypes:HtmlInline_AzurePipelines_Dark;Cobertura")
-              };
-                 
-              ReportGenerator(glob, outputDirectory, reportSettings);
-});
+        Information($"globpattern : { glob.ToString()}");
+        var outputDirectory = Directory($"./coverage/reports");
+        
+        Information($"output Directory : { outputDirectory}");
+        var reportSettings = new ReportGeneratorSettings
+        {
+            ArgumentCustomization = args => args.Append($"-reportTypes:HtmlInline_AzurePipelines_Dark;Cobertura")
+        };
+        
+        ReportGenerator(glob, outputDirectory, reportSettings);
+    });
 
 Task("Pack")
     .IsDependentOn("Test")
-    .Does(() => {
-    var settings = new DotNetPackSettings
-    {
-        Configuration = configuration,
-        OutputDirectory = MakeAbsolute(Directory(PACK_OUTPUT_DIR)),
-        MSBuildSettings = new DotNetMSBuildSettings()
-                        .WithProperty("PackageVersion", version)
-                        .WithProperty("Copyright", $"© Copyright {DateTime.Now.Year}")
-                        .WithProperty("Version", version)
-    };
-    
-    if (string.IsNullOrEmpty(solution_file_name))
-    {
-        var projects = GetFiles("./src/**/*.csproj");
-        if (!projects.Any())
-        {
-            projects = GetFiles("./src/*.csproj");
-        }
-        projects.ToList().ForEach(project => {
-            Information($"Packing {project.ToString()}");
-            DotNetPack(project.ToString(), settings);
-        });
-    }
-    else
-    {
-        DotNetPack(solution_file_name, settings);
-    }
-});
+    .Description("Validates the application and builds its production container image")
+    .Does(buildContainerImage);
+
+Task("PackOnly")
+    .IsDependentOn("Version")
+    .Description("Builds the production container image from previously validated source")
+    .Does(buildContainerImage);
 
 Task("Default")
-       .IsDependentOn("Clean")
-       .IsDependentOn("Version")
-       .IsDependentOn("Restore")
-       .IsDependentOn("Format")
-       .IsDependentOn("Build")
-       .IsDependentOn("Test")
-       .IsDependentOn("Pack");
+    .IsDependentOn("Pack");
 
 RunTarget(target);
