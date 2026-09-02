@@ -2,10 +2,9 @@
 name: 'Publish NuGet Packages'
 
 on:
-  workflow_call:
-    secrets:
-      NUGET_USERNAME:
-        required: true
+  push:
+    tags:
+      - '*.*.*'
 
 concurrency:
   group: nuget-publish-${{ github.ref }}
