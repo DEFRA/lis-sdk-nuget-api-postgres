@@ -28,6 +28,22 @@ public class PostgresDbContextModelTests
     }
 
     [Fact]
+    public void ReadOnlyConfigureModel_Should_Set_DefaultSchema_And_Extensions()
+    {
+        var options = new DbContextOptionsBuilder<ReadOnlyPostgresDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+        using var context = new TestReadOnlyDbContext(options);
+        var modelBuilder = new ModelBuilder();
+
+        context.PublicConfigureModel(modelBuilder);
+
+        modelBuilder.Model.GetDefaultSchema().ShouldBe("public");
+        modelBuilder.Model.GetPostgresExtensions().Select(extension => extension.Name)
+            .ShouldBe([PostgreExtensions.PgCrypto, PostgreExtensions.Citext], ignoreOrder: true);
+    }
+
+    [Fact]
     public void ReadOnlyPostgresDbContext_SaveChanges_Should_Throw()
     {
         var options = new DbContextOptionsBuilder<ReadOnlyPostgresDbContext>()
@@ -57,5 +73,11 @@ public class PostgresDbContextModelTests
         : PostgresDbContext(options)
     {
         public void PublicConfigureModel(ModelBuilder modelBuilder) => ConfigureModel(modelBuilder);
+    }
+
+    private sealed class TestReadOnlyDbContext(DbContextOptions<ReadOnlyPostgresDbContext> options)
+        : ReadOnlyPostgresDbContext(options)
+    {
+        public void PublicConfigureModel(ModelBuilder modelBuilder) => OnModelCreating(modelBuilder);
     }
 }

@@ -144,6 +144,30 @@ public class PostgresDataSourceFactoryTests
     }
 
     [Fact]
+    public async Task CreateDataSource_Iam_UsesPeriodicPasswordProvider()
+    {
+        var config = new PostgresConfiguration
+        {
+            UseIamAuthentication = true,
+            ReadWriteHost = "localhost",
+            Port = 1,
+            Name = "test-db",
+            User = "test-user",
+        };
+        tokenService.GenerateTokenAsync("localhost", 1, "test-user").Returns("iam-token");
+        using var factory = new PostgresDataSourceFactory(config, tokenService);
+        var dataSource = factory.CreateDataSource("Default");
+
+        await Should.ThrowAsync<Npgsql.NpgsqlException>(async () =>
+        {
+            await using var connection = await dataSource.OpenConnectionAsync(
+                TestContext.Current.CancellationToken);
+        });
+
+        await tokenService.Received(1).GenerateTokenAsync("localhost", 1, "test-user");
+    }
+
+    [Fact]
     public void CreateDataSource_Iam_ReadOnly_Returns_DataSource()
     {
         defaultConfig.UseIamAuthentication = true;
@@ -151,6 +175,15 @@ public class PostgresDataSourceFactoryTests
 
         dataSource.ShouldNotBeNull();
         dataSource.ConnectionString.ShouldContain("Host=readonly-host");
+    }
+
+    [Fact]
+    public void CreateDataSource_Iam_Throws_On_Unknown_Identifier()
+    {
+        defaultConfig.UseIamAuthentication = true;
+
+        Should.Throw<ArgumentException>(() => defaultFactory.CreateDataSource("Unknown"))
+            .Message.ShouldBe("Unknown connection identifier: Unknown");
     }
 
     [Fact]
@@ -169,9 +202,27 @@ public class PostgresDataSourceFactoryTests
         Should.NotThrow(() => defaultFactory.Dispose()); // Should not throw
     }
 
+    [Fact]
+    public void Dispose_WhenNotDisposingManagedResources_MarksFactoryAsDisposed()
+    {
+        using var factory = new TestablePostgresDataSourceFactory(defaultConfig, tokenService);
+
+        factory.DisposeWithoutManagedResources();
+
+        Should.Throw<ObjectDisposedException>(() => factory.CreateDataSource("Default"));
+    }
+
     public void Dispose()
     {
         defaultFactory.Dispose();
         GC.SuppressFinalize(this);
+    }
+
+    private sealed class TestablePostgresDataSourceFactory(
+        PostgresConfiguration configuration,
+        ITokenGenerationService tokenGenerationService)
+        : PostgresDataSourceFactory(configuration, tokenGenerationService)
+    {
+        public void DisposeWithoutManagedResources() => Dispose(false);
     }
 }
