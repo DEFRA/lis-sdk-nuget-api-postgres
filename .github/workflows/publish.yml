@@ -16,13 +16,7 @@ permissions:
 
 jobs:
   publish-nuget:
-    name: 'Publish NuGet Packages'
-    runs-on: ubuntu-latest
-    environment: release
-
-    steps:
-      - publish:
-          name: 'Publish Nuget'
-          uses: ./.github/workflows/support-publish.yml
-          with:
-            version: ${{ github.ref_name }}
+    name: 'Publish nuget'
+    uses: ./.github/workflows/support-publish.yml
+    with:
+      version: ${{ github.ref_name }}
