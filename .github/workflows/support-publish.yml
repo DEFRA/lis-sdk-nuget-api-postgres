@@ -3,7 +3,7 @@ name: 'Test and Sonar'
 on:
   workflow_call:
     secrets:
-      LIS_SONAR_TOKEN:
+      NUGET_USERNAME:
         required: true
 
 permissions:
