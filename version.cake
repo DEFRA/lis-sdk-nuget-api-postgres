@@ -4,7 +4,6 @@ using System;
 using System.Linq;
 using System.Text.RegularExpressions;
 
-var target = Argument("target", "Default");
 var hotfixBranchPattern = new Regex(@"^hotfix/(lreg-[0-9]+)-.+$");
 var featureBranchPattern = new Regex(@"^feature/(lreg-[0-9]+)-.+$");
 var stableTagPattern = new Regex(@"^[0-9]+\.[0-9]+\.[0-9]+$");
@@ -155,8 +154,8 @@ Task("GetVersion")
         }
     });
 
-
-Task("Default")
-    .IsDependentOn("GetVersion");
-    
-RunTarget(target);
+var targetVersion = Argument("target", "");
+if (targetVersion == "GetVersion")
+{
+    RunTarget("GetVersion");
+}

@@ -9,13 +9,10 @@ string GetSolutionFile(){
     if (solutionFile != null)
     {
         Information($"Detected solution file: {solutionFile.FullPath}");
+        return solutionFile.FullPath;        
     }
-    else
-    {
-        Error("No solution file detected.");
-    }
-    
-    return solutionFile.FullPath;        
+
+    throw new CakeException("No solution file detected.");
 }
 
 IReadOnlyList<string> GetCommandOutput(string fileName, string arguments)
@@ -44,7 +41,7 @@ IReadOnlyList<string> GetCommandOutput(string fileName, string arguments)
             Error(line);
         }
 
-        throw new Exception($"{fileName} {arguments} failed with exit code {exitCode}.");
+        throw new CakeException($"{fileName} {arguments} failed with exit code {exitCode}.");
     }
 
     return outputLines;
