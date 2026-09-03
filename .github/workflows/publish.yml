@@ -11,7 +11,6 @@ concurrency:
   cancel-in-progress: false
 
 permissions:
-  actions: read
   contents: read
   id-token: write
 
@@ -22,26 +21,32 @@ jobs:
     environment: release
 
     steps:
+      - name: Checkout tagged source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
       - name: Setup .NET
         uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
           dotnet-version: '10.0.x'
 
-      - name: Download NuGet packages
-        uses: actions/download-artifact@v4
-        with:
-          name: nuget-packages
-          path: artefacts
+      - name: Pack NuGet packages
+        env:
+          PACKAGE_VERSION: ${{ github.ref_name }}
+        run: >-
+          dotnet pack
+          --configuration Release
+          --output ./artifacts
+          /p:Version="$PACKAGE_VERSION"
 
       - name: NuGet trusted publishing login
         id: nuget-login
-        uses: NuGet/login@v1
+        uses: NuGet/login@8d196754b4036150537f80ac539e15c2f1028841 # v1.2.0
         with:
           user: ${{ secrets.NUGET_USERNAME }}
 
       - name: Push to NuGet.org
         run: |
-          dotnet nuget push "artefacts/*.nupkg" \
+          dotnet nuget push "artifacts/*.nupkg" \
             --api-key "${{ steps.nuget-login.outputs.NUGET_API_KEY }}" \
             --source "https://api.nuget.org/v3/index.json" \
             --skip-duplicate

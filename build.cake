@@ -5,50 +5,9 @@
 
 var target = Argument("target", "Default");
 var version = Argument("package_version", EnvironmentVariable("PACKAGE_VERSION") ?? "");
-var imageName = Argument("image_name", EnvironmentVariable("IMAGE_NAME") ?? "");
-var imageRef = Argument("image_ref", EnvironmentVariable("IMAGE_REF") ?? "");
-var revision = Argument("revision", EnvironmentVariable("REVISION") ?? "");
 private readonly string SOLUTION_FILE = GetSolutionFile();
 private const string CONFIGURATION = "release";
 private const DotNetVerbosity VERBOSITY = DotNetVerbosity.Minimal;
-
-string RequiredValue(string value, string name)
-{
-    if (string.IsNullOrWhiteSpace(value))
-    {
-        throw new Exception($"{name} is required to build the container image.");
-    }
-
-    return value;
-}
-
-Action buildContainerImage = () =>
-{
-    var resolvedImageName = RequiredValue(imageName, "IMAGE_NAME");
-    var resolvedImageRef = string.IsNullOrWhiteSpace(imageRef)
-        ? $"{resolvedImageName}:{version}"
-        : imageRef;
-    var resolvedRevision = RequiredValue(revision, "REVISION");
-    var repository = EnvironmentVariable("GITHUB_REPOSITORY") ?? resolvedImageName;
-    var serverUrl = EnvironmentVariable("GITHUB_SERVER_URL") ?? "https://github.com";
-    var runId = EnvironmentVariable("GITHUB_RUN_ID") ?? "local";
-
-    Information($"Building production container image {resolvedImageRef}");
-    RunCommand(
-        "docker",
-        "buildx build . " +
-        "--file ./Dockerfile " +
-        "--target production " +
-        "--no-cache --provenance=false --sbom=false --load " +
-        $"--tag \"{resolvedImageRef}\" " +
-        $"--label \"defra.cdp.git.repo.url={serverUrl}/{repository}\" " +
-        $"--label \"defra.cdp.git.repo.name={repository}\" " +
-        $"--label \"defra.cdp.service.name={resolvedImageName}\" " +
-        $"--label \"defra.cdp.build.run_id={runId}\" " +
-        "--label \"defra.cdp.run_mode=service\" " +
-        $"--label \"git.hash={resolvedRevision}\" " +
-        $"--label \"org.opencontainers.image.version={version}\"");
-};
 
 Task("Clean")
     .Does(() => 
@@ -159,17 +118,7 @@ Task("Test")
         ReportGenerator(glob, outputDirectory, reportSettings);
     });
 
-Task("Pack")
-    .IsDependentOn("Test")
-    .Description("Validates the application and builds its production container image")
-    .Does(buildContainerImage);
-
-Task("PackOnly")
-    .IsDependentOn("Version")
-    .Description("Builds the production container image from previously validated source")
-    .Does(buildContainerImage);
-
 Task("Default")
-    .IsDependentOn("Pack");
+    .IsDependentOn("Test");
 
 RunTarget(target);
