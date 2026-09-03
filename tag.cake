@@ -1,4 +1,3 @@
-#load "base.cake"
 #load "version.cake"
 
 var target = Argument("target", "Default");

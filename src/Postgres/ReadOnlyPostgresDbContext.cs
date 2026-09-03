@@ -1,9 +1,14 @@
+// <copyright file="ReadOnlyPostgresDbContext.cs" company="Defra">
+// Copyright (c) Defra. All rights reserved.
+// </copyright>
+
+namespace Defra.Lis.Postgres;
+
 using System;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
-
-namespace Defra.Database.Postgres;
+using Defra.Lis.Database;
 
 public class ReadOnlyPostgresDbContext(DbContextOptions<ReadOnlyPostgresDbContext> options)
     : DbContextBase<ReadOnlyPostgresDbContext>(options)

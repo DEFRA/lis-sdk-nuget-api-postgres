@@ -1,9 +1,13 @@
+// <copyright file="TokenGenerationServiceTests.cs" company="Defra">
+// Copyright (c) Defra. All rights reserved.
+// </copyright>
+
+namespace Defra.Lis.Database.Tests;
+
 using System.Threading.Tasks;
 using Amazon;
 using Amazon.Runtime;
-using Defra.Database.Postgres;
-
-namespace Defra.Database.Tests;
+using Defra.Lis.Postgres;
 
 public class TokenGenerationServiceTests
 {
@@ -17,6 +21,7 @@ public class TokenGenerationServiceTests
         var token = await service.GenerateTokenAsync("localhost", 5432, "user");
 
         token.ShouldNotBeNullOrEmpty();
+
         // RDS tokens usually start with the hostname or have a specific format
         token.ShouldContain("localhost");
     }

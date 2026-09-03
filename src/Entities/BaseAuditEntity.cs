@@ -2,9 +2,7 @@
 // Copyright (c) Defra. All rights reserved.
 // </copyright>
 
-using System;
-
-namespace Defra.Database.Entities;
+namespace Defra.Lis.Entities;
 
 public abstract class BaseAuditEntity
 {

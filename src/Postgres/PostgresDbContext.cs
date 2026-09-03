@@ -1,14 +1,17 @@
+// <copyright file="PostgresDbContext.cs" company="Defra">
+// Copyright (c) Defra. All rights reserved.
+// </copyright>
+
+namespace Defra.Lis.Postgres;
+
 using System;
 using System.Linq;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
-using Defra.Database.Entities;
-using Microsoft.EntityFrameworkCore.ChangeTracking;
+using Defra.Lis.Database;
+using Defra.Lis.Entities;
 
-namespace Defra.Database.Postgres;
-
-using System.Diagnostics.CodeAnalysis;
-using System.Reflection;
 public class PostgresDbContext(DbContextOptions<PostgresDbContext> options)
     : DbContextBase<PostgresDbContext>(options)
 {

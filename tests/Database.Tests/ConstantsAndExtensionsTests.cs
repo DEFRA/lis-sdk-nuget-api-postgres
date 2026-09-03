@@ -1,6 +1,10 @@
-using Defra.Database.Postgres;
+// <copyright file="ConstantsAndExtensionsTests.cs" company="Defra">
+// Copyright (c) Defra. All rights reserved.
+// </copyright>
 
-namespace Defra.Database.Tests;
+namespace Defra.Lis.Database.Tests;
+
+using Defra.Lis.Postgres;
 
 public class ConstantsAndExtensionsTests
 {

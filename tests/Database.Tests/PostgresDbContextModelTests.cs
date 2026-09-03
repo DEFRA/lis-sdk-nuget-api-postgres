@@ -1,17 +1,16 @@
+// <copyright file="PostgresDbContextModelTests.cs" company="Defra">
+// Copyright (c) Defra. All rights reserved.
+// </copyright>
+
+namespace Defra.Lis.Database.Tests;
+
 using System;
 using System.Threading.Tasks;
-using Defra.Database.Postgres;
+using Defra.Lis.Postgres;
 using Microsoft.EntityFrameworkCore;
-
-namespace Defra.Database.Tests;
 
 public class PostgresDbContextModelTests
 {
-    private class TestDbContext(DbContextOptions<PostgresDbContext> options) : PostgresDbContext(options)
-    {
-        public void PublicConfigureModel(ModelBuilder modelBuilder) => base.ConfigureModel(modelBuilder);
-    }
-
     [Fact]
     public void ConfigureModel_Should_Set_DefaultSchema_And_Extensions()
     {
@@ -22,10 +21,26 @@ public class PostgresDbContextModelTests
         using var context = new TestDbContext(options);
         var modelBuilder = new ModelBuilder();
 
+        Should.NotThrow(() => context.PublicConfigureModel(modelBuilder));
+
+        // We can't easily check all internals of ModelBuilder without a lot of mocking,
+        // but we can at least ensure it doesn't throw and we call it.
+    }
+
+    [Fact]
+    public void ReadOnlyConfigureModel_Should_Set_DefaultSchema_And_Extensions()
+    {
+        var options = new DbContextOptionsBuilder<ReadOnlyPostgresDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+        using var context = new TestReadOnlyDbContext(options);
+        var modelBuilder = new ModelBuilder();
+
         context.PublicConfigureModel(modelBuilder);
 
-        // We can't easily check all internals of ModelBuilder without a lot of mocking, 
-        // but we can at least ensure it doesn't throw and we call it.
+        modelBuilder.Model.GetDefaultSchema().ShouldBe("public");
+        modelBuilder.Model.GetPostgresExtensions().Select(extension => extension.Name)
+            .ShouldBe([PostgreExtensions.PgCrypto, PostgreExtensions.Citext], ignoreOrder: true);
     }
 
     [Fact]
@@ -51,6 +66,18 @@ public class PostgresDbContextModelTests
         using var context = new ReadOnlyPostgresDbContext(options);
 
         await Should.ThrowAsync<InvalidOperationException>(async () => await context.SaveChangesAsync())
-            .ContinueWith(t => t.Result.Message.ShouldBe("This context is read-only."));
+            .ContinueWith(t => t.Result.Message.ShouldBe("This context is read-only."), TestContext.Current.CancellationToken);
+    }
+
+    private class TestDbContext(DbContextOptions<PostgresDbContext> options)
+        : PostgresDbContext(options)
+    {
+        public void PublicConfigureModel(ModelBuilder modelBuilder) => ConfigureModel(modelBuilder);
+    }
+
+    private sealed class TestReadOnlyDbContext(DbContextOptions<ReadOnlyPostgresDbContext> options)
+        : ReadOnlyPostgresDbContext(options)
+    {
+        public void PublicConfigureModel(ModelBuilder modelBuilder) => OnModelCreating(modelBuilder);
     }
 }

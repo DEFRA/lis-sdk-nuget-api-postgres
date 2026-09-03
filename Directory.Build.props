@@ -1,23 +1,55 @@
 <Project>
-    <PropertyGroup>
-        <Authors>Defra</Authors>
-        <TargetFramework>net10.0</TargetFramework>
-        <Title>Defra .net database project</Title>
-        <Description>Defra .net postgre database project templates</Description>
-        <RepositoryType>git</RepositoryType>
-         <RepositoryUrl>https://github.com/defra/lis-sdk-nuget-api-postgres</RepositoryUrl>
-        <Copyright>Copyright © Defra $([System.DateTime]::Now.ToString("yyyy")) </Copyright>
-        <PackageProjectUrl>https://www.gov.uk/government/organisations/department-for-environment-food-rural-affairs</PackageProjectUrl>
-        <PackageLicenseFile>LICENSE</PackageLicenseFile>
-        <PackageIcon>icon.png</PackageIcon>
-        <ProductName>Defra.Lis.Database</ProductName>
-        <RootNamespace>Defra.Lis.Database</RootNamespace>
-        <PackageTags>defra;dotnet;lis</PackageTags>
-    </PropertyGroup>
-    <ItemGroup>
-        <Content Include="$(MSBuildThisFileDirectory)icon.png" Pack="true" PackagePath="/">
-            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-        </Content>
-        <None Include="$(MSBuildThisFileDirectory)LICENSE" Pack="true" PackagePath="/" />
-    </ItemGroup>
+  <PropertyGroup>
+    <Authors>Defra</Authors>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <Title>Defra .net database project</Title>
+    <Description>Defra .net postgre database project templates</Description>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>defra;dotnet;lis</PackageTags>
+    <Copyright>Copyright © Defra $([System.DateTime]::Now.ToString("yyyy")) </Copyright>
+
+    <RootNamespace>Defra.Lis</RootNamespace>
+    <RootNamespace>$(RootNamespace).$(MSBuildProjectName)</RootNamespace>
+    <AssemblyName>$(RootNamespace)</AssemblyName>
+
+    <RepositoryUrl>https://github.com/defra/lis-sdk-nuget-api-postgres</RepositoryUrl>
+    <PackageProjectUrl>https://www.gov.uk/government/organisations/department-for-environment-food-rural-affairs</PackageProjectUrl>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
+    <PackageIcon>icon.png</PackageIcon>
+  </PropertyGroup>
+
+  <!-- content files -->
+  <ItemGroup>
+    <Content Include="$(MSBuildThisFileDirectory)icon.png" Pack="true" PackagePath="/">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <None Include="$(MSBuildThisFileDirectory)LICENSE" Pack="true" PackagePath="/" />
+  </ItemGroup>
+  
+  <!-- global packages -->
+  <ItemGroup>
+    <Using Include="Microsoft" />
+  </ItemGroup>
+
+  <!-- Code analysis packages and configuration-->
+  <ItemGroup>
+    <AdditionalFiles Include="$(MSBuildThisFileDirectory)stylecop.json">
+      <Link>Properties\stylecop.json</Link>
+    </AdditionalFiles>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="StyleCop.Analyzers">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="SonarAnalyzer.CSharp">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
 </Project>

@@ -1,91 +1,145 @@
 #nullable enable
-#tool dotnet:?package=GitVersion.Tool&version=6.5.1
+#load "base.cake"
+using System;
+using System.Linq;
+using System.Text.RegularExpressions;
 
-public string CalculateVersion()
+var hotfixBranchPattern = new Regex(@"^hotfix/(lreg-[0-9]+)-.+$");
+var featureBranchPattern = new Regex(@"^feature/(lreg-[0-9]+)-.+$");
+var stableTagPattern = new Regex(@"^[0-9]+\.[0-9]+\.[0-9]+$");
+var versionPattern = new Regex(
+    @"^[0-9]+\.[0-9]+\.[0-9]+(?:-lreg-[0-9]+\.alpha\.[1-9][0-9]*)?$");
+
+string ResolveRepositoryBranchName(string? branchName = null)
 {
-    var settings = new GitVersionSettings
-    {
-        NoFetch = true
-    };
+    var resolvedBranchName = branchName;
 
-    var gitVersion = GitVersion(settings);
-    
-    var calculatedVersion = gitVersion.FullSemVer;
-    var baseVersion = $"{gitVersion.Major}.{gitVersion.Minor}.{gitVersion.Patch}";
-
-    var isGitHubActions = BuildSystem.GitHubActions.IsRunningOnGitHubActions;
-    var isPullRequest = isGitHubActions && BuildSystem.GitHubActions.Environment.PullRequest.IsPullRequest;
-    
-    var branchName = Argument("branch", "");
-    var buildNumber = Argument("buildNumber", "");
-    
-    if (string.IsNullOrWhiteSpace(branchName))
+    if (string.IsNullOrWhiteSpace(resolvedBranchName))
     {
-        if (isGitHubActions)
-        {
-            branchName = isPullRequest ? EnvironmentVariable("GITHUB_HEAD_REF") : BuildSystem.GitHubActions.Environment.Workflow.RefName;
-        }
-        else
-        {
-            try 
-            {
-                IEnumerable<string> outLines;
-                var exitCode = StartProcess("git", new ProcessSettings {
-                    Arguments = "rev-parse --abbrev-ref HEAD",
-                    RedirectStandardOutput = true
-                }, out outLines);
-                if (exitCode == 0)
-                {
-                    branchName = outLines.FirstOrDefault();
-                }
-               
-            } 
-            catch 
-            {
-                // git not found or not a repo
-            }
-        }
+        resolvedBranchName = EnvironmentVariable("GITHUB_HEAD_REF");
     }
 
-    var isMain = !string.IsNullOrWhiteSpace(branchName) && (
-        branchName.Equals("main", StringComparison.OrdinalIgnoreCase) || 
-        branchName.Equals("master", StringComparison.OrdinalIgnoreCase) ||
-        branchName.EndsWith("/main", StringComparison.OrdinalIgnoreCase) ||
-        branchName.EndsWith("/master", StringComparison.OrdinalIgnoreCase)
-    );
-
-    if (isPullRequest || !isGitHubActions || !isMain)
+    if (string.IsNullOrWhiteSpace(resolvedBranchName))
     {
-        var lreg = "LREG-XX";
-        if (!string.IsNullOrWhiteSpace(branchName))
-        {
-            var match = System.Text.RegularExpressions.Regex.Match(branchName, @"LREG-\d+", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
-            if (match.Success)
-            {
-                lreg = match.Value.ToUpper();
-            }
-        }
+        resolvedBranchName = EnvironmentVariable("GITHUB_REF_NAME");
+    }
 
-        var height = gitVersion.CommitsSinceVersionSource ?? 0;
-        calculatedVersion = $"{baseVersion}-{lreg}-alpha.{height}";
-        if (!string.IsNullOrWhiteSpace(buildNumber))
-        {
-            calculatedVersion += $".{buildNumber}";
-        }
+    if (string.IsNullOrWhiteSpace(resolvedBranchName))
+    {
+        resolvedBranchName = GetGitOutput("branch --show-current").FirstOrDefault();
+    }
+
+    if (string.IsNullOrWhiteSpace(resolvedBranchName))
+    {
+        throw new Exception("Unable to determine the branch name.");
+    }
+
+    return resolvedBranchName.ToLowerInvariant();
+}
+
+void FetchRepositoryVersionState()
+{
+    RunGit("fetch --force --tags origin +refs/heads/main:refs/remotes/origin/main");
+}
+
+string CalculateVersion(string? branchName = null, bool stable = false)
+{
+    FetchRepositoryVersionState();
+
+    var resolvedBranchName = ResolveRepositoryBranchName(branchName);
+    var hotfixMatch = hotfixBranchPattern.Match(resolvedBranchName);
+    string storyId;
+    string bumpType;
+
+    if (hotfixMatch.Success)
+    {
+        storyId = hotfixMatch.Groups[1].Value;
+        bumpType = "patch";
     }
     else
     {
-        calculatedVersion = baseVersion;
+        var featureMatch = featureBranchPattern.Match(resolvedBranchName);
+
+        if (!featureMatch.Success)
+        {
+            throw new Exception($"Branch '{resolvedBranchName}' does not have the correct name.");
+        }
+
+        storyId = featureMatch.Groups[1].Value;
+        bumpType = "minor";
     }
-    return calculatedVersion;
+
+    var latestMainTag = GetGitOutput("tag --merged origin/main --sort=-v:refname")
+        .FirstOrDefault(line => stableTagPattern.IsMatch(line));
+
+    var major = 0;
+    var minor = 0;
+    var patch = 0;
+
+    if (!string.IsNullOrWhiteSpace(latestMainTag))
+    {
+        var parts = latestMainTag.Split('.');
+        major = int.Parse(parts[0]);
+        minor = int.Parse(parts[1]);
+        patch = int.Parse(parts[2]);
+    }
+
+    if (bumpType.Equals("minor", StringComparison.OrdinalIgnoreCase))
+    {
+        minor += 1;
+        patch = 0;
+    }
+    else
+    {
+        patch += 1;
+    }
+
+    var baseVersion = $"{major}.{minor}.{patch}";
+    string version;
+
+    if (!stable)
+    {
+        var mergeBase = GetGitOutput("merge-base HEAD origin/main").First();
+        var depthValue = GetGitOutput($"rev-list --count {mergeBase}..HEAD").First();
+        int depth;
+
+        if (!int.TryParse(depthValue, out depth) || depth < 1)
+        {
+            depth = 1;
+        }
+
+        version = $"{baseVersion}-{storyId}.alpha.{depth}";
+    }
+    else
+    {
+        version = baseVersion;
+    }
+
+    if (!versionPattern.IsMatch(version))
+    {
+        throw new Exception($"Calculated version '{version}' is not valid.");
+    }
+
+    Information($"Resolved branch '{resolvedBranchName}' with story '{storyId}' and bump '{bumpType}'.");
+
+    return version;
 }
 
 Task("GetVersion")
     .Description("Calculates the version and sets it as a GitHub Actions output")
     .Does(() => {
-        var version = CalculateVersion();
+        var branchName = Argument("branch", "");
+        var releaseType = Argument("release_type", "prerelease");
+
+        if (releaseType != "prerelease" && releaseType != "stable")
+        {
+            throw new Exception(
+                $"Release type '{releaseType}' is invalid. Use 'prerelease' or 'stable'.");
+        }
+
+        var version = CalculateVersion(branchName, releaseType == "stable");
         Information($"Calculated Version: {version}");
-        
+
         if (BuildSystem.GitHubActions.IsRunningOnGitHubActions)
         {
             var outputFile = EnvironmentVariable("GITHUB_OUTPUT");

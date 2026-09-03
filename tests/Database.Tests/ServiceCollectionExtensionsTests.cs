@@ -1,12 +1,15 @@
-#nullable enable
+// <copyright file="ServiceCollectionExtensionsTests.cs" company="Defra">
+// Copyright (c) Defra. All rights reserved.
+// </copyright>
+
+namespace Defra.Lis.Database.Tests;
+
 using System.Collections.Generic;
-using Defra.Database.Postgres;
+using Defra.Lis.Postgres;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using NSubstitute;
-
-namespace Defra.Database.Tests;
 
 public class ServiceCollectionExtensionsTests
 {
@@ -18,7 +21,8 @@ public class ServiceCollectionExtensionsTests
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
                 ["ConnectionStrings:ReadWritePostgresConnection"] = "Host=localhost;Database=test",
-                ["PostgresConfiguration:Port"] = "5432"
+                ["ConnectionStrings:ReadOnlyPostgresConnection"] = "Host=readonly;Database=test",
+                ["PostgresConfiguration:Port"] = "5432",
             })
             .Build();
 
@@ -28,7 +32,9 @@ public class ServiceCollectionExtensionsTests
 
         var serviceProvider = services.BuildServiceProvider();
 
-        serviceProvider.GetService<PostgresConfiguration>().ShouldNotBeNull();
+        var postgresConfiguration = serviceProvider.GetRequiredService<PostgresConfiguration>();
+        postgresConfiguration.ConnectionString.ShouldBe("Host=localhost;Database=test");
+        postgresConfiguration.ReadOnlyConnectionString.ShouldBe("Host=readonly;Database=test");
         serviceProvider.GetService<IDataSourceFactory<Npgsql.NpgsqlDataSource>>().ShouldNotBeNull();
         serviceProvider.GetService<PostgresDbContext>().ShouldNotBeNull();
         serviceProvider.GetService<ReadOnlyPostgresDbContext>().ShouldNotBeNull();
@@ -42,7 +48,7 @@ public class ServiceCollectionExtensionsTests
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
                 ["PostgresConfiguration:UseIamAuthentication"] = "true",
-                ["AWS:Region"] = "eu-west-1"
+                ["AWS:Region"] = "eu-west-1",
             })
             .Build();
 
@@ -63,6 +69,7 @@ public class ServiceCollectionExtensionsTests
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
                 ["PostgresConfiguration:UseIamAuthentication"] = "true",
+
                 // Region is missing, should default to eu-west-2
             })
             .Build();
@@ -108,6 +115,6 @@ public class ServiceCollectionExtensionsTests
         var app = Substitute.For<Microsoft.AspNetCore.Builder.IApplicationBuilder>();
         app.ApplicationServices.Returns(serviceProvider);
 
-        app.UsePostgresDatabase();
+        Should.NotThrow(app.UsePostgresDatabase);
     }
 }
