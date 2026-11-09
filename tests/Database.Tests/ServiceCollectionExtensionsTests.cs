@@ -1,6 +1,8 @@
 #nullable enable
 using System.Collections.Generic;
 using Defra.Database.Postgres;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -89,6 +91,51 @@ public class ServiceCollectionExtensionsTests
         serviceProvider.GetService<PostgresConfiguration>().ShouldNotBeNull();
     }
 
+    [Theory]
+    [InlineData(null, null, false)]
+    [InlineData("false", null, false)]
+    [InlineData("false", "false", false)]
+    [InlineData("true", null, false)]
+    [InlineData("false", "true", true)]
+    [InlineData("true", "true", true)]
+    public void AddPostgresDatabase_Should_Only_Enable_Sensitive_Data_Logging_When_Configured(
+        string? useIamAuthentication,
+        string? enableSensitiveDataLogging,
+        bool expected)
+    {
+        var settings = new Dictionary<string, string?>
+        {
+            ["ConnectionStrings:ReadWritePostgresConnection"] = "Host=localhost;Database=test",
+            ["PostgresConfiguration:ReadWriteHost"] = "localhost",
+            ["PostgresConfiguration:ReadOnlyHost"] = "localhost",
+            ["PostgresConfiguration:Name"] = "test",
+            ["PostgresConfiguration:User"] = "test",
+        };
+
+        if (useIamAuthentication != null)
+        {
+            settings["PostgresConfiguration:UseIamAuthentication"] = useIamAuthentication;
+        }
+
+        if (enableSensitiveDataLogging != null)
+        {
+            settings["PostgresConfiguration:EnableSensitiveDataLogging"] = enableSensitiveDataLogging;
+        }
+
+        var services = new ServiceCollection();
+        var configuration = new ConfigurationBuilder().AddInMemoryCollection(settings).Build();
+
+        services.AddSingleton(Substitute.For<ILoggerFactory>());
+        services.AddSingleton(Substitute.For<Amazon.Runtime.AWSCredentials>());
+        services.AddPostgresDatabase(configuration);
+
+        using var serviceProvider = services.BuildServiceProvider();
+        using var scope = serviceProvider.CreateScope();
+
+        IsSensitiveDataLoggingEnabled(scope.ServiceProvider.GetRequiredService<PostgresDbContext>()).ShouldBe(expected);
+        IsSensitiveDataLoggingEnabled(scope.ServiceProvider.GetRequiredService<ReadOnlyPostgresDbContext>()).ShouldBe(expected);
+    }
+
     [Fact]
     public void UsePostgresDatabase_Should_Not_Throw()
     {
@@ -110,4 +157,9 @@ public class ServiceCollectionExtensionsTests
 
         app.UsePostgresDatabase();
     }
+
+    private static bool IsSensitiveDataLoggingEnabled(DbContext context) =>
+        context.GetService<IDbContextOptions>()
+            .FindExtension<CoreOptionsExtension>()?
+            .IsSensitiveDataLoggingEnabled ?? false;
 }

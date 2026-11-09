@@ -172,12 +172,21 @@ registered in dependency injection, or otherwise from the default AWS credential
 | `ConnectionStrings:ReadWritePostgresConnection` | none | Read-write connection string (standard mode) |
 | `ConnectionStrings:ReadOnlyPostgresConnection` | read-write connection string | Read-only connection string (standard mode) |
 | `PostgresConfiguration:UseIamAuthentication` | `false` | Use IAM tokens instead of a password |
+| `PostgresConfiguration:EnableSensitiveDataLogging` | `false` | Include SQL parameter values and entity data in EF Core logs and errors. Local debugging only |
 | `PostgresConfiguration:ReadWriteHost` | none | Read-write host (IAM mode) |
 | `PostgresConfiguration:ReadOnlyHost` | none | Read-only host (IAM mode); no fallback |
 | `PostgresConfiguration:Port` | `5432` | Port (IAM mode) |
 | `PostgresConfiguration:Name` | none | Database name (IAM mode) |
 | `PostgresConfiguration:User` | none | Database user (IAM mode) |
 | `AWS:Region` | `eu-west-2` | Region used to sign IAM tokens (IAM mode) |
+
+### Sensitive data logging
+
+EF Core's sensitive data logging is off unless you set
+`PostgresConfiguration:EnableSensitiveDataLogging` to `true`. When it is on, EF Core writes SQL
+parameter values and entity data, which can include personal data, to the logs and to exception
+messages. Turn it on only for local debugging, never in a deployed environment. In earlier versions
+it was on whenever IAM authentication was off.
 
 ## Prerequisites
 
