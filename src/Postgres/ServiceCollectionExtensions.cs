@@ -11,12 +11,14 @@ using Npgsql;
 
 namespace Defra.Database.Postgres;
 
-public static class ServiceCollectionExtensions
+public static partial class ServiceCollectionExtensions
 {
     private const int MaxRetryCount = 5;
     private const int MaxRetryDelay = 10;
 
     private const int CommandTimeout = 60;
+
+    private const string LoggerCategory = "Defra.Database.Postgres";
 
     /// <summary>
     /// Common PostgreSQL SQLSTATEs often considered transient:
@@ -64,14 +66,14 @@ public static class ServiceCollectionExtensions
         {
             var dataSourceFactory = sp.GetRequiredService<IDataSourceFactory<NpgsqlDataSource>>();
             var dataSource = dataSourceFactory.CreateDataSource("Default");
-            ConfigureNpgsql(sp, options, dataSource, postgresConfig.UseIamAuthentication);
+            ConfigureNpgsql(sp, options, dataSource, postgresConfig.EnableSensitiveDataLogging);
         });
 
         services.AddDbContext<ReadOnlyPostgresDbContext>((sp, options) =>
         {
             var dataSourceFactory = sp.GetRequiredService<IDataSourceFactory<NpgsqlDataSource>>();
             var dataSource = dataSourceFactory.CreateDataSource("ReadOnly");
-            ConfigureNpgsql(sp, options, dataSource, postgresConfig.UseIamAuthentication);
+            ConfigureNpgsql(sp, options, dataSource, postgresConfig.EnableSensitiveDataLogging);
             options.UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking);
         });
 
@@ -92,15 +94,25 @@ public static class ServiceCollectionExtensions
         }
         catch (InvalidOperationException ex) when (ex.Message.Contains("PendingModelChangesWarning"))
         {
-            // Ignore pending model changes warning during tests/dev if it's treated as error
+            // Start-up carries on, but say so rather than hiding it. The exception message is not logged.
+            var logger = app.ApplicationServices.GetService<ILoggerFactory>()?.CreateLogger(LoggerCategory);
+            if (logger != null)
+            {
+                LogPendingModelChangesSkipped(logger);
+            }
         }
     }
+
+    [LoggerMessage(
+        LogLevel.Warning,
+        "Skipped opening the Postgres connection at start-up because EF Core reported pending model changes")]
+    private static partial void LogPendingModelChangesSkipped(ILogger logger);
 
     private static void ConfigureNpgsql(
         IServiceProvider sp,
         DbContextOptionsBuilder options,
         NpgsqlDataSource dataSource,
-        bool isIamAuth)
+        bool enableSensitiveDataLogging)
     {
         options
             .UseLoggerFactory(sp.GetRequiredService<ILoggerFactory>())
@@ -115,7 +127,7 @@ public static class ServiceCollectionExtensions
                         errorCodesToAdd: ErrorCodes);
                     npgsqlOptions.CommandTimeout(CommandTimeout);
                 })
-            .EnableSensitiveDataLogging(!isIamAuth);
+            .EnableSensitiveDataLogging(enableSensitiveDataLogging);
     }
 
     private static PostgresConfiguration GetPostgresConfiguration(IConfiguration configuration)
